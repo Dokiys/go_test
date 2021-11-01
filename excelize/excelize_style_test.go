@@ -46,7 +46,6 @@ type Protection struct {
 	Locked bool `json:"locked"`
 }
 
-
 type Style struct {
 	Border        []Border    `json:"border"`
 	Fill          Fill        `json:"fill"`
@@ -74,7 +73,7 @@ func TestExcelizeStyle(t *testing.T) {
 		{
 			Type:  "top",
 			Color: "000000",
-			Style:5,
+			Style: 5,
 		},
 	}})
 	err := f.MergeCell("Sheet1", "B2", "C4")
@@ -88,7 +87,6 @@ func TestExcelizeStyle(t *testing.T) {
 	f.SetCellValue("Sheet1", "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-
 	f.SaveAs("BookStyle_out.xlsx")
 }
 
@@ -97,18 +95,18 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 	f := excelize.NewFile()
 
 	style := Style{
-		Border:        []Border{{
+		Border: []Border{{
 			Type:  "",
 			Color: "",
 			Style: 0,
 		}},
-		Fill:          Fill{
+		Fill: Fill{
 			Type:    "",
 			Pattern: 0,
 			Color:   []string{},
 			Shading: 0,
 		},
-		Font:          &Font{
+		Font: &Font{
 			Bold:      false,
 			Italic:    false,
 			Underline: "",
@@ -117,7 +115,7 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 			Strike:    false,
 			Color:     "",
 		},
-		Alignment:     &Alignment{
+		Alignment: &Alignment{
 			Horizontal:      "",
 			Indent:          0,
 			JustifyLastLine: false,
@@ -128,7 +126,7 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 			Vertical:        "",
 			WrapText:        false,
 		},
-		Protection:    &Protection{
+		Protection: &Protection{
 			Hidden: false,
 			Locked: false,
 		},
@@ -151,6 +149,43 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 	f.SetCellValue(sheet, "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-
 	f.SaveAs("BookDefaultStyle_out.xlsx")
+}
+
+// TestExcelizeMergeCellStyle 测试设置合并单元格样式
+func TestExcelizeMergeCellStyle(t *testing.T) {
+	f := excelize.NewFile()
+
+	styleIndex, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{
+		Type:    "pattern",
+		Pattern: 1,
+		Color:   []string{"#FF0000"},
+		Shading: 0,
+	}})
+	f.MergeCell("Sheet1", "A1", "C4")
+	f.SetCellStyle("Sheet1", "A1", "A1", styleIndex)
+
+
+	f.SaveAs("BookMergeCellStyle_out.xlsx")
+}
+
+// TestRepeatedStyle 测试New重复的Style index是否复用
+func TestRepeatedStyle(t *testing.T) {
+	f := excelize.NewFile()
+
+	styleIndex1, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{
+		Type:    "pattern",
+		Pattern: 1,
+		Color:   []string{"#FF0000"},
+		Shading: 0,
+	}})
+	styleIndex2, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{
+		Type:    "pattern",
+		Pattern: 1,
+		Color:   []string{"#FF0000"},
+		Shading: 0,
+	}})
+
+	t.Logf("styleIndex1: %v", styleIndex1)
+	t.Logf("styleIndex2: %v", styleIndex2)
 }
