@@ -93,6 +93,7 @@ func TestExcelizeStyle(t *testing.T) {
 // TestExcelizeStyleJsonStruct 默认值生成excel
 func TestExcelizeStyleJsonStruct(t *testing.T) {
 	f := excelize.NewFile()
+	str := "[$-380A]dddd\\\\,\\\\ dd\\\" de \\\"mmmm\\\" de \\\"yyyy;@"
 
 	style := Style{
 		Border: []Border{{
@@ -132,12 +133,13 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 		},
 		NumFmt:        0,
 		DecimalPlaces: 0,
-		CustomNumFmt:  nil,
+		CustomNumFmt:  &str,
 		Lang:          "",
 		NegRed:        false,
 	}
 
 	j, _ := json.Marshal(style)
+	t.Logf("style json: %s", string(j))
 
 	styleIndex, _ := f.NewStyle(string(j))
 	sheet := "Sheet1"
@@ -165,12 +167,11 @@ func TestExcelizeMergeCellStyle(t *testing.T) {
 	f.MergeCell("Sheet1", "A1", "C4")
 	f.SetCellStyle("Sheet1", "A1", "A1", styleIndex)
 
-
 	f.SaveAs("BookMergeCellStyle_out.xlsx")
 }
 
-// TestRepeatedStyle 测试New重复的Style index是否复用
-func TestRepeatedStyle(t *testing.T) {
+// TestExcelizeRepeatedStyle 测试New重复的Style index是否复用
+func TestExcelizeRepeatedStyle(t *testing.T) {
 	f := excelize.NewFile()
 
 	styleIndex1, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{
@@ -188,4 +189,70 @@ func TestRepeatedStyle(t *testing.T) {
 
 	t.Logf("styleIndex1: %v", styleIndex1)
 	t.Logf("styleIndex2: %v", styleIndex2)
+}
+
+// TestExcelizeBorderStyle 测试边框样式实际展示效果
+func TestExcelizeBorderStyle(t *testing.T) {
+	f := excelize.NewFile()
+
+	styleIndex, _ := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "top", Color: "#FF00FF", Style: 5},
+			{Type: "bottom", Color: "#FF00FF", Style: 2},
+			{Type: "left", Color: "#FF00FF", Style: 3},
+			{Type: "right", Color: "#FF00FF", Style: 4},
+		},
+	})
+	f.MergeCell("Sheet1", "B2", "C4")
+	f.SetCellStyle("Sheet1", "B2", "C4", styleIndex)
+	f.SetCellValue("Sheet1", "B2", "B2")
+
+	f.SaveAs("BookBorderStyle_out.xlsx")
+}
+
+// TestExcelizeNilStyle 测试空style
+func TestExcelizeNilStyle(t *testing.T) {
+	f := excelize.NewFile()
+
+	style := Style{
+		Border: []Border{
+			{Type: "top", Color: "#FF00FF", Style: 5},
+			{Type: "bottom", Color: "#FF00FF", Style: 2},
+			{Type: "left", Color: "#FF00FF", Style: 3},
+			{Type: "right", Color: "#FF00FF", Style: 4},
+		},
+		Fill: Fill{
+			Type:    "",
+			Pattern: 0,
+			Color:   []string{},
+			Shading: 0,
+		},
+		Font: &Font{
+			Bold:      false,
+			Italic:    false,
+			Underline: "",
+			Family:    "",
+			Size:      0,
+			Strike:    false,
+			Color:     "",
+		},
+		Alignment: &Alignment{
+			Horizontal:      "",
+			Vertical:        "",
+		},
+	}
+
+	j, _ := json.Marshal(style)
+
+	styleIndex, _ := f.NewStyle(string(j))
+	sheet := "Sheet1"
+	f.MergeCell(sheet, "B2", "C4")
+	f.SetCellStyle(sheet, "B2", "C4", styleIndex)
+
+	// 设置单元格的值
+	f.SetCellValue(sheet, "C2", "lalala")
+	f.SetCellValue(sheet, "D4", "lalala")
+	//f.SetColStyle()	// 当前版本v2.4.1不支持
+
+	f.SaveAs("BookNilStyle_out.xlsx")
 }

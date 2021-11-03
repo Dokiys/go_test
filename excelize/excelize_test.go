@@ -124,3 +124,21 @@ func TestExcelizeImage(t *testing.T) {
 		fmt.Println(err)
 	}
 }
+
+// TestExcelizeOneMerge 测试左侧单个合并单元格的插入是否增长
+func TestExcelizeOneMerge(t *testing.T) {
+	f := excelize.NewFile()
+	sheet := "Sheet1"
+	// 设置单元格的值
+	f.SetCellValue(sheet, "A1", 100)
+	f.SetCellValue(sheet, "B2", 1)
+	f.MergeCell(sheet, "A1", "A2")
+	f.RemoveRow(sheet, 1)
+
+
+	//f.DuplicateRowTo(sheet, 2, 3)
+	//f.RemoveRow(sheet, 2)
+
+	// 根据指定路径保存文件
+	f.SaveAs("BookOneMerge_out.xlsx")
+}
