@@ -87,7 +87,7 @@ func TestExcelizeStyle(t *testing.T) {
 	f.SetCellValue("Sheet1", "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("BookStyle_out.xlsx")
+	f.SaveAs("../assert/BookStyle_out.xlsx")
 }
 
 // TestExcelizeStyleJsonStruct 默认值生成excel
@@ -151,7 +151,7 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 	f.SetCellValue(sheet, "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("BookDefaultStyle_out.xlsx")
+	f.SaveAs("../assert/BookDefaultStyle_out.xlsx")
 }
 
 // TestExcelizeMergeCellStyle 测试设置合并单元格样式
@@ -167,7 +167,7 @@ func TestExcelizeMergeCellStyle(t *testing.T) {
 	f.MergeCell("Sheet1", "A1", "C4")
 	f.SetCellStyle("Sheet1", "A1", "A1", styleIndex)
 
-	f.SaveAs("BookMergeCellStyle_out.xlsx")
+	f.SaveAs("../assert/BookMergeCellStyle_out.xlsx")
 }
 
 // TestExcelizeRepeatedStyle 测试New重复的Style index是否复用
@@ -207,7 +207,7 @@ func TestExcelizeBorderStyle(t *testing.T) {
 	f.SetCellStyle("Sheet1", "B2", "C4", styleIndex)
 	f.SetCellValue("Sheet1", "B2", "B2")
 
-	f.SaveAs("BookBorderStyle_out.xlsx")
+	f.SaveAs("../assert/BookBorderStyle_out.xlsx")
 }
 
 // TestExcelizeNilStyle 测试空style
@@ -254,5 +254,5 @@ func TestExcelizeNilStyle(t *testing.T) {
 	f.SetCellValue(sheet, "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("BookNilStyle_out.xlsx")
+	f.SaveAs("../assert/BookNilStyle_out.xlsx")
 }

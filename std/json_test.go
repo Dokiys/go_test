@@ -1,4 +1,4 @@
-package json
+package std
 
 import (
 	"encoding/json"

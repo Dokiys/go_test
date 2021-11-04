@@ -1,4 +1,4 @@
-package inner
+package std
 
 import (
 	"crypto/md5"
@@ -38,13 +38,13 @@ func TestStrGenRand1(t *testing.T) {
 	t.Log(s)
 }
 
-const alphabet = "abcdefghijklmnopqrstuvwxyz"
+const str_alphabet = "abcdefghijklmnopqrstuvwxyz"
 // TestStrGenRand1 生成随机字符串，不带数字
 func TestStrGenRand2(t *testing.T) {
 	b := make([]byte, 8)
 	rand.Seed(time.Now().UnixNano())
 	for i := range b {
-		b[i] = alphabet[rand.Int63()%int64(26)]
+		b[i] = str_alphabet[rand.Int63()%int64(26)]
 	}
 	t.Log(string(b))
 }

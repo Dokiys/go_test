@@ -1,4 +1,4 @@
-package rand
+package std
 
 import (
 	"math/rand"
@@ -15,13 +15,13 @@ func TestRand(t *testing.T) {
 	t.Log(j)
 }
 
-const alphabet = "abcdefghijklmnopqrstuvwxyz"
+const rand_alphabet = "abcdefghijklmnopqrstuvwxyz"
 func TestRandAlphabetStr(t *testing.T) {
 	n := 8
 	b := make([]byte, n)
 	rand.Seed(time.Now().UnixNano())
 	for i := range b {
-		b[i] = alphabet[rand.Int63() % int64(26)]
+		b[i] = rand_alphabet[rand.Int63() % int64(26)]
 	}
 
 	t.Log(string(b))

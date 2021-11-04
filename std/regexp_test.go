@@ -1,4 +1,4 @@
-package inner
+package std
 
 import (
 	"regexp"

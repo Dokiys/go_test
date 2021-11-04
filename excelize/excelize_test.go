@@ -20,14 +20,14 @@ func TestExcelizeHello(t *testing.T) {
 	// 设置工作簿的默认工作表
 	f.SetActiveSheet(index)
 	// 根据指定路径保存文件
-	if err := f.SaveAs("BookHello_out.xlsx"); err != nil {
+	if err := f.SaveAs("../assert/BookHello_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
 
 // TestExcelizeReadExcel 测试读取文件
 func TestExcelizeReadExcel(t *testing.T) {
-	f, err := excelize.OpenFile("BookRead.xlsx")
+	f, err := excelize.OpenFile("../assert/BookRead.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -48,7 +48,7 @@ func TestExcelizeReadExcel(t *testing.T) {
 		fmt.Println()
 	}
 
-	f.SaveAs("BookRead_out.xlsx")
+	f.SaveAs("../assert/BookRead_out.xlsx")
 }
 
 // TestExcelizeChart 添加图表
@@ -90,7 +90,7 @@ func TestExcelizeChart(t *testing.T) {
 		return
 	}
 	// 根据指定路径保存文件
-	if err := f.SaveAs("BookChart_out.xlsx"); err != nil {
+	if err := f.SaveAs("../assert/BookChart_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -120,7 +120,7 @@ func TestExcelizeImage(t *testing.T) {
 		fmt.Println(err)
 	}
 	// 保存文件
-	if err := f.SaveAs("BookImage_out.xlsx"); err != nil {
+	if err := f.SaveAs("../assert/BookImage_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -140,5 +140,5 @@ func TestExcelizeOneMerge(t *testing.T) {
 	//f.RemoveRow(sheet, 2)
 
 	// 根据指定路径保存文件
-	f.SaveAs("BookOneMerge_out.xlsx")
+	f.SaveAs("../assert/BookOneMerge_out.xlsx")
 }

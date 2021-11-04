@@ -1,4 +1,4 @@
-package http
+package std
 
 import (
 	"net/http"

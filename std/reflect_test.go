@@ -1,4 +1,4 @@
-package reflect
+package std
 
 import (
 	"reflect"
