@@ -26,6 +26,23 @@ func TestStrReplace(t *testing.T) {
 	t.Log(s)
 }
 
+// TestStrReplaceAll 字符串替换all
+func TestStrReplaceAll(t *testing.T) {
+	str := "jd12kld3afs234djfkal"
+	prefix := make([]rune, len(str))
+
+	index := 0
+	for _, r := range str {
+		if r >= '0' && r <= '9' {
+			continue
+		}
+		prefix[index] = r
+		index++
+	}
+
+	t.Logf("替换后的字符：%s", string(prefix[:index]))
+}
+
 // TestStrGenRand 生成随机字符串,带数字
 func TestStrGenRand1(t *testing.T) {
 	now := time.Now().UnixNano()
@@ -39,6 +56,7 @@ func TestStrGenRand1(t *testing.T) {
 }
 
 const str_alphabet = "abcdefghijklmnopqrstuvwxyz"
+
 // TestStrGenRand1 生成随机字符串，不带数字
 func TestStrGenRand2(t *testing.T) {
 	b := make([]byte, 8)
@@ -52,7 +70,7 @@ func TestStrGenRand2(t *testing.T) {
 // TestStrBatchReplaceAll 字符串替换
 func TestStrBatchReplaceAll(t *testing.T) {
 	v := "123252432"
-	for i := 0; i < len(v); i++{
+	for i := 0; i < len(v); i++ {
 		if v[i] == '3' {
 			v = v[:i] + "" + v[i+1:]
 		}
@@ -62,8 +80,8 @@ func TestStrBatchReplaceAll(t *testing.T) {
 
 // TestStrSlicePrint 字符串切片打印
 func TestStrSlicePrint(t *testing.T) {
-	strArr := []string{"1","2","3"}
-	t.Logf("%s",strArr)
+	strArr := []string{"1", "2", "3"}
+	t.Logf("%s", strArr)
 }
 
 // TestStrNestedMethod 校验表达式是否有方法嵌套
@@ -76,7 +94,7 @@ func TestStrNestedMethod(t *testing.T) {
 		if s[i:i+4] != "sum(" && s[i:i+4] != "avg(" {
 			continue
 		}
-		for j,c:= i+4,1; j < len(s); j++ {
+		for j, c := i+4, 1; j < len(s); j++ {
 			t.Log(string(s[j]))
 			if s[j] == '(' {
 				c++

@@ -142,3 +142,20 @@ func TestExcelizeOneMerge(t *testing.T) {
 	// 根据指定路径保存文件
 	f.SaveAs("../assert/BookOneMerge_out.xlsx")
 }
+
+// TestExcelizeExp 测试表达式
+func TestExcelizeExp(t *testing.T) {
+	f := excelize.NewFile()
+	sheet := "Sheet1"
+	// 设置单元格的值
+	f.SetCellValue(sheet, "A1", 100)
+	f.SetCellValue(sheet, "A2", 1)
+	f.SetCellFormula(sheet, "A3", "=A1+A2")
+
+
+	//f.DuplicateRowTo(sheet, 2, 3)
+	//f.RemoveRow(sheet, 2)
+
+	// 根据指定路径保存文件
+	f.SaveAs("../assert/BookExp_out.xlsx")
+}

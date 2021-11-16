@@ -19,8 +19,8 @@ func TestLogrus(t *testing.T) {
 		"ip":      "192.168.32.15",
 	})
 
-	logrus.Infof("test: %s", "Hello Work!")
-	logger.Infof("test: %s", "Hello Work!")
+	logrus.Infof("mytest: %s", "Hello Work!")
+	logger.Infof("mytest: %s", "Hello Work!")
 }
 
 // TestLogrusOut logrus输出到文件
