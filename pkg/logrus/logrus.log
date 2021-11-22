@@ -1,0 +1,6 @@
+{"level":"info","msg":"Hello First File Log","time":"2021-09-16T10:54:08+08:00"}
+time="2021-09-16T13:38:04+08:00" level=info msg="Hello First File Log"
+{"level":"info","msg":"Hello First File Log","time":"2021-10-31T11:44:47+08:00"}
+{"level":"info","msg":"Hello First File Log","time":"2021-10-31T11:45:24+08:00"}
+{"level":"info","msg":"Hello First File Log","time":"2021-11-05T15:10:33+08:00"}
+{"level":"info","msg":"Hello First File Log","time":"2021-11-05T15:10:34+08:00"}

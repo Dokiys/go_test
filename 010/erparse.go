@@ -11,7 +11,7 @@ import (
 var value = flag.String("v", "[]", "传入Json格式的SendConfig数组")
 var field = flag.String("f", "all", "选择需要输出的字段")
 
-// pbpaste | go run ./erparse.go
+// pbpaste | go run ./myparse.go
 func main() {
 	flag.Parse()
 	if *value != "[]" {
