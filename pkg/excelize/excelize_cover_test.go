@@ -10,7 +10,7 @@ import (
 
 // TestExcelizeCoverCell 测试单元格覆盖
 func TestExcelizeCoverCell(t *testing.T) {
-	f, err := excelize.OpenFile("../assert/BookCover.xlsx")
+	f, err := excelize.OpenFile("BookCover.xlsx")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -29,5 +29,5 @@ func TestExcelizeCoverCell(t *testing.T) {
 		return
 	}
 
-	f.SaveAs("../assert/BookCover_out.xlsx")
+	f.SaveAs(pathPrefix + "BookCover_out.xlsx")
 }

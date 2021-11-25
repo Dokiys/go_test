@@ -47,12 +47,12 @@ type Protection struct {
 }
 
 type Style struct {
-	Border     []Border    `json:"border"`
-	Fill       Fill        `json:"fill"`
-	Font       *Font       `json:"font"`
-	Alignment  *Alignment  `json:"alignment"`
-	Protection *Protection `json:"protection"`
-	NumFmt     int         `json:"number_format"`
+	Border        []Border    `json:"border"`
+	Fill          Fill        `json:"fill"`
+	Font          *Font       `json:"font"`
+	Alignment     *Alignment  `json:"alignment"`
+	Protection    *Protection `json:"protection"`
+	NumFmt        int         `json:"number_format"`
 	DecimalPlaces int         `json:"decimal_places"`
 	CustomNumFmt  *string     `json:"custom_number_format"`
 	Lang          string      `json:"lang"`
@@ -87,7 +87,7 @@ func TestExcelizeStyle(t *testing.T) {
 	f.SetCellValue("Sheet1", "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("../assert/BookStyle_out.xlsx")
+	f.SaveAs(pathPrefix + "BookStyle_out.xlsx")
 }
 
 // TestExcelizeStyleJsonStruct 默认值生成excel
@@ -151,7 +151,7 @@ func TestExcelizeStyleJsonStruct(t *testing.T) {
 	f.SetCellValue(sheet, "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("../assert/BookDefaultStyle_out.xlsx")
+	f.SaveAs(pathPrefix + "BookDefaultStyle_out.xlsx")
 }
 
 // TestExcelizeMergeCellStyle 测试设置合并单元格样式
@@ -167,7 +167,7 @@ func TestExcelizeMergeCellStyle(t *testing.T) {
 	f.MergeCell("Sheet1", "A1", "C4")
 	f.SetCellStyle("Sheet1", "A1", "A1", styleIndex)
 
-	f.SaveAs("../assert/BookMergeCellStyle_out.xlsx")
+	f.SaveAs(pathPrefix + "BookMergeCellStyle_out.xlsx")
 }
 
 // TestExcelizeRepeatedStyle 测试New重复的Style index是否复用
@@ -207,7 +207,7 @@ func TestExcelizeBorderStyle(t *testing.T) {
 	f.SetCellStyle("Sheet1", "B2", "C4", styleIndex)
 	f.SetCellValue("Sheet1", "B2", "B2")
 
-	f.SaveAs("../assert/BookBorderStyle_out.xlsx")
+	f.SaveAs(pathPrefix + "BookBorderStyle_out.xlsx")
 }
 
 // TestExcelizeNilStyle 测试空style
@@ -237,8 +237,8 @@ func TestExcelizeNilStyle(t *testing.T) {
 			Color:     "",
 		},
 		Alignment: &Alignment{
-			Horizontal:      "",
-			Vertical:        "",
+			Horizontal: "",
+			Vertical:   "",
 		},
 	}
 
@@ -254,5 +254,44 @@ func TestExcelizeNilStyle(t *testing.T) {
 	f.SetCellValue(sheet, "D4", "lalala")
 	//f.SetColStyle()	// 当前版本v2.4.1不支持
 
-	f.SaveAs("../assert/BookNilStyle_out.xlsx")
+	f.SaveAs(pathPrefix + "BookNilStyle_out.xlsx")
+}
+
+func TestExcelizeCenter(t *testing.T) {
+	f := excelize.NewFile()
+
+	/**
+		"horizontal": "center",
+		"indent": 0,
+		"justifyLastLine": false,
+		"readingOrder": 0,
+		"relativeIndent": 0,
+		"shrinkToFit": false,
+		"textRotation": 0,
+		"vertical": "center",
+		"wrapText": false
+	*/
+	style := Style{
+		Alignment: &Alignment{
+			Horizontal: "center",
+			Indent: 0,
+			JustifyLastLine: false,
+			ReadingOrder: 0,
+			RelativeIndent: 0,
+			ShrinkToFit: false,
+			TextRotation: 0,
+			Vertical:   "center",
+			WrapText: false,
+		},
+	}
+
+	j, _ := json.Marshal(style)
+	index, _ := f.NewStyle(j)
+	sheet := "Sheet1"
+	f.SetCellValue(sheet, "A1", "100")
+	f.SetCellStyle(sheet, "A1", "A1", index)
+	err := f.SaveAs(pathPrefix + "BookCenterStyle.xlsx")
+	if err != nil {
+		t.Fatal(err)
+	}
 }

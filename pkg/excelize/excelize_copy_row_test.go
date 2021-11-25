@@ -11,7 +11,7 @@ import (
 )
 // TestExcelizeDup 测试插入复制行
 func TestExcelizeDup(t *testing.T) {
-	f, err := excelize.OpenFile("../assert/BookDup.xlsx")
+	f, err := excelize.OpenFile(pathPrefix + "BookDup.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -22,12 +22,12 @@ func TestExcelizeDup(t *testing.T) {
 		return
 	}
 
-	f.SaveAs("../assert/BookDup_out.xlsx")
+	f.SaveAs(pathPrefix + "BookDup_out.xlsx")
 }
 
 // TestExcelizeCopy 测试替换复制行
 func TestExcelizeCopy(t *testing.T) {
-	f, _ := excelize.OpenFile("../assert/BookCopy.xlsx")
+	f, _ := excelize.OpenFile(pathPrefix + "BookCopy.xlsx")
 
 	data := []int{1, 2, 3}
 	// 校验指定单元格高度是否为数据条数的倍数
@@ -61,5 +61,5 @@ func TestExcelizeCopy(t *testing.T) {
 			}
 		}
 	}
-	f.SaveAs("../assert/BookCopy_out.xlsx")
+	f.SaveAs(pathPrefix + "BookCopy_out.xlsx")
 }
