@@ -21,3 +21,8 @@ func TestTimeAdd(t *testing.T) {
 	t.Log(time.Now().Format("2006-01-02"))
 	t.Log(time.Now().AddDate(1,0,0).Format("2006-01-02"))
 }
+
+// TestTimeNano 输出当前时间
+func TestTimeNano(t *testing.T) {
+	t.Log(time.Now().UnixNano())
+}

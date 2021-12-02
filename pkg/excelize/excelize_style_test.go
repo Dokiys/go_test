@@ -1,7 +1,8 @@
-package excelize
+package excelize1
 
 import (
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"github.com/xuri/excelize/v2"
 	"testing"
 )
@@ -257,41 +258,21 @@ func TestExcelizeNilStyle(t *testing.T) {
 	f.SaveAs(pathPrefix + "BookNilStyle_out.xlsx")
 }
 
-func TestExcelizeCenter(t *testing.T) {
+// TestNumFormat 测试NumFormat返回相同的styleID
+func TestNumFormat(t *testing.T) {
+	sheet := "Sheet1"
 	f := excelize.NewFile()
 
-	/**
-		"horizontal": "center",
-		"indent": 0,
-		"justifyLastLine": false,
-		"readingOrder": 0,
-		"relativeIndent": 0,
-		"shrinkToFit": false,
-		"textRotation": 0,
-		"vertical": "center",
-		"wrapText": false
-	*/
-	style := Style{
-		Alignment: &Alignment{
-			Horizontal: "center",
-			Indent: 0,
-			JustifyLastLine: false,
-			ReadingOrder: 0,
-			RelativeIndent: 0,
-			ShrinkToFit: false,
-			TextRotation: 0,
-			Vertical:   "center",
-			WrapText: false,
-		},
-	}
+	cell := "A1"
+	styleIndex2, _ := f.NewStyle("{\"protection\":{\"hidden\":false,\"locked\":false},\"number_format\":10}")
+	styleIndex, _ := f.NewStyle("{\"protection\":{\"hidden\":false,\"locked\":false},\"number_format\":0}")
+	//styleIndex2, _ := f.NewStyle("{\"number_format\":10}")
+	//styleIndex, _ := f.NewStyle("{\"number_format\":0}")
+	t.Log(styleIndex2)
+	t.Log(styleIndex)
 
-	j, _ := json.Marshal(style)
-	index, _ := f.NewStyle(j)
-	sheet := "Sheet1"
-	f.SetCellValue(sheet, "A1", "100")
-	f.SetCellStyle(sheet, "A1", "A1", index)
-	err := f.SaveAs(pathPrefix + "BookCenterStyle.xlsx")
-	if err != nil {
-		t.Fatal(err)
-	}
+	f.SetCellValue(sheet, cell, 11)
+	f.SetCellStyle(sheet, cell, cell, styleIndex)
+
+	assert.NoError(t, f.SaveAs("BookNumFormat_out.xlsx"))
 }
