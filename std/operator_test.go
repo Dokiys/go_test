@@ -1,9 +1,7 @@
 package std
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 )
 
 // TestOperatorBitOperation 位运算
@@ -22,7 +20,9 @@ func TestOperatorOver(t *testing.T) {
 	t.Log(v)
 }
 
-func RandNum(n int64) int64 {
-	rand.Seed(time.Now().UnixNano())
-	return rand.Int63n(n)
+// TestOperatorFlag 判断int类型首位
+func TestOperatorFlag(t *testing.T) {
+	//i := 1
+	var i int64 = -100
+	t.Logf("%d", 2 + i>>64)
 }

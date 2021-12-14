@@ -9,6 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/smartystreets/goconvey v1.7.2
+	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/xuri/excelize/v2 v2.4.2-0.20211201164820-4ca1b305fe5b
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect

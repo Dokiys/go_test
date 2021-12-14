@@ -22,7 +22,8 @@ func TestExcelizeDup(t *testing.T) {
 		return
 	}
 
-	f.SaveAs(pathPrefix + "BookDup_out.xlsx")
+	f.SaveAs("BookDup_out.xlsx")
+	//f.SaveAs(pathPrefix + "BookDup_out.xlsx")
 }
 
 // TestExcelizeCopy 测试替换复制行
