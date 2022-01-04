@@ -1,6 +1,7 @@
 package std
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"testing"
@@ -38,4 +39,11 @@ func TestErrChain(t *testing.T) {
 	fmt.Printf("Is: %v\n", errors.Is(err1, err2))
 	fmt.Printf("As: %v\n", errors.As(err1, &temp))
 	fmt.Printf("As: %v\n", errors.As(err1, &MyErr{}))
+}
+
+func TestErrNil(t *testing.T) {
+	var err error
+	if _, ok := err.(*json.MarshalerError); ok {
+		t.Log(1)
+	}
 }

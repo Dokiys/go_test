@@ -13,15 +13,19 @@ func TestInterfaceAssert(t *testing.T) {
 	}
 }
 
+type Aa struct {}
 // TestInterfaceType 接口类型判断
 func TestInterfaceType(t *testing.T) {
 	var i interface{}
-	str := "string"
-	i = str
+	//str := "string"
+	a := Aa{}
+	i = a
 
 	switch i.(type) {
 	case string:
 		t.Logf("i is string, value is: %s", i.(string))
+	case Aa:
+		t.Logf("i is Aa, value is: %s", i.(Aa))
 	default:
 		t.Logf("unknow interface type")
 	}

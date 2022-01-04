@@ -4,7 +4,9 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"math/rand"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -82,6 +84,13 @@ func TestStrBatchReplaceAll(t *testing.T) {
 func TestStrSlicePrint(t *testing.T) {
 	strArr := []string{"1", "2", "3"}
 	t.Logf("%s", strArr)
+}
+
+func TestStrToInt(t *testing.T) {
+	str := "12378392469324342"
+	i, err := strconv.ParseInt(str, 10, 64)
+	assert.NoError(t, err)
+	t.Log(i)
 }
 
 // TestStrNestedMethod 校验表达式是否有方法嵌套
