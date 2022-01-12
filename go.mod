@@ -11,10 +11,12 @@ require (
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.3.0
-	github.com/xuri/excelize/v2 v2.4.2-0.20211201164820-4ca1b305fe5b
+	github.com/xuri/excelize/v2 v2.5.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0 // indirect
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 )
