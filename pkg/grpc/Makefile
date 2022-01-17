@@ -5,9 +5,12 @@ proto:
 gofast_proto:
 	protoc --proto_path=. --gofast_out=Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types:../ $(PROTO_FILES)
 
-#   -oFILE,                     Writes a FileDescriptorSet (a protocol buffer,
-#    --descriptor_set_out=FILE defined in descriptor.proto) containing all of
-#                              the input files to FILE.
+# GRPC
+PROTO_GRPC_FILES=$(shell find ./hellogrpc/* -name *.proto)
+proto_grpc:
+	protoc --go_out=. --go_opt=paths=source_relative \
+ 		    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+ 		    $(PROTO_GRPC_FILES)
 
 #proto:
 #	protoc --proto_path=. \
