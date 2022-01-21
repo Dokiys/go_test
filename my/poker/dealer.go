@@ -1,45 +1,53 @@
 package poker
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 type Dealer struct {
-	s *stack
+	stack *stack
+}
+
+func NewDealer() *Dealer {
+	dealer := &Dealer{}
+	dealer.CutTheDeck()
+	return dealer
 }
 
 func (self *Dealer) CutTheDeck() {
-	self.s = &stack{
+	self.stack = &stack{
 		dc: deckCards,
 		v:  RandAlphabetStr(10),
 	}
 }
 
 func (self *Dealer) Deal() (*HandCard, error) {
-	s := self.s
+	stack := self.stack
 
-	s.l.Lock()
-	defer s.l.Unlock()
+	stack.l.Lock()
+	defer stack.l.Unlock()
 
-	if s.c >= 17 {
+	if stack.c >= 17 {
 		return nil, errors.New("超出发牌数量限制！")
 	}
 
 	i := 0
 	cards := [3]int{}
-	for k, v := range s.dc {
+	for k, v := range stack.dc {
 		{
 			if v == "" {
 				continue
 			}
 			cards[i] = k
-			s.dc[k] = ""
+			stack.dc[k] = ""
 		}
 		if i++; i >= 3 {
 			break
 		}
 	}
 
-	s.c++
-	return &HandCard{cards: cards, v: s.v}, nil
+	stack.c++
+	return &HandCard{cards: cards, v: stack.v}, nil
 }
 
 func (self *Dealer) Compare(c1 *HandCard, c2 *HandCard) (bool, error) {
