@@ -1,4 +1,4 @@
-package poker
+package win3cards
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestStack(t *testing.T) {
-	dealer := Dealer{}
+	dealer := Win3Cards{}
 	dealer.CutTheDeck()
 	cards, err := dealer.Deal()
 	assert.NoError(t, err)

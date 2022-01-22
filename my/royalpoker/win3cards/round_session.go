@@ -1,7 +1,8 @@
-package poker
+package win3cards
 
 import (
 	"context"
+	"github.com/dokiy/royalpoker/common"
 	"github.com/pkg/errors"
 	"sync"
 )
@@ -9,11 +10,10 @@ import (
 const base = 1
 
 type RoundSession struct {
-	Players   map[int]*Player // key playerId
-	Dealer    *Dealer
-	handCards map[int]*HandCard // 玩家底牌 key playerId
-	PInfo     map[int]*PlayInfo // 本局台面信息 key playerId
-	PLog      []string          // 回合操作流水
+	Players   map[int]*common.Player // key playerId
+	handCards map[int]HandCard        // 玩家底牌 key playerId
+	PInfo     map[int]*PlayInfo       // 本局台面信息 key playerId
+	PLog      []string                // 回合操作流水
 
 	seq     []int // 本局playerId顺序
 	current int   // 当前步骤玩家index
@@ -26,23 +26,23 @@ type PlayInfo struct {
 	IsOut    bool // 是否出局
 }
 
-func NewRoundSession(players map[int]*Player) *RoundSession {
+func NewRoundSession(players map[int]*common.Player) *RoundSession {
 	return &RoundSession{Players: players}
 }
 
-func (self *RoundSession) init(seq []int) error {
+func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
 	if len(seq) <= 1 {
 		return errors.New("人数不够开局！")
 	}
 	l := len(seq)
-	self.handCards = make(map[int]*HandCard, l)
+	self.handCards = make(map[int]HandCard, l)
 	self.PInfo = make(map[int]*PlayInfo, l)
 	self.PLog = make([]string, l*4)
 	self.current = 0
 
 	self.seq = seq
 	for _, id := range seq {
-		handCard, err := self.Dealer.Deal()
+		handCard, err := poker.Deal()
 		if err != nil {
 			return errors.Wrapf(err, "发牌错误：")
 		}
@@ -53,27 +53,36 @@ func (self *RoundSession) init(seq []int) error {
 	return nil
 }
 
-func (self *RoundSession) Play(ctx context.Context, seq []int) (winner *Player, err error) {
+func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int) (winner *common.Player, err error) {
 	// 初始化开局
-	if err := self.init(seq);err != nil {
+	if err := self.init(poker, seq); err != nil {
 		return nil, errors.Wrapf(err, "初始化开局错误：")
 	}
 
 	// 庄家下庄
 	self.l.Lock()
 	{
-		i := ((self.current + len(self.seq)) - 1)%len(self.seq)
+		i := ((self.current + len(self.seq)) - 1) % len(self.seq)
 		self.getPInfoByIndex(i).Score -= len(self.seq) * base
 	}
 	self.l.Unlock()
 
 	for {
 		// TODO[Dokiy] 2022/1/21:  发送广播消息给所有玩家
-		select {
-		case a := self.currentPlayer().Action(ctx):
-			// TODO[Dokiy] 2022/1/21: 等待当前玩家操作
+		// ...
+
+		// TODO[Dokiy] 2022/1/21: 等待当前玩家操作
+		action := self.currentPlayer().WaitAction(ctx)
+		print(action)
+		// TODO[Dokiy] 2022/1/22: 处理当前玩家的操作
+		// 1 跟，2 加注，3 弃牌，4，看牌 5，开其他玩家的牌，
+		{
+
 		}
 
+		if isContinued(action) {
+			continue
+		}
 		if !self.nextPlayer() {
 			break
 		}
@@ -96,7 +105,7 @@ func (self *RoundSession) nextPlayer() (ok bool) {
 
 // =========================================================
 
-func (self *RoundSession) currentPlayer() *Player {
+func (self *RoundSession) currentPlayer() *common.Player {
 	return self.getPlayerByIndex(self.current)
 }
 
@@ -108,10 +117,10 @@ func (self *RoundSession) getPInfoById(id int) *PlayInfo {
 	return self.PInfo[id]
 }
 
-func (self *RoundSession) getPlayerByIndex(i int) *Player {
+func (self *RoundSession) getPlayerByIndex(i int) *common.Player {
 	return self.getPlayerById(self.seq[i])
 }
 
-func (self *RoundSession) getPlayerById(id int) *Player {
+func (self *RoundSession) getPlayerById(id int) *common.Player {
 	return self.Players[id]
 }

@@ -1,11 +1,16 @@
-package poker
+package win3cards
 
 type HandCard struct {
-	cards [3]int
-	v string
+	Cards [3]int
+	V     string
 }
 
-func (self *HandCard) score() (score int) {
+func (self HandCard) Version() string {
+	return self.V
+}
+
+
+func (self HandCard) Score() (score int) {
 	if self.isLeopard() {
 		score = 500
 	} else if self.isRoyalFlush() {
@@ -22,16 +27,16 @@ func (self *HandCard) score() (score int) {
 	return (score+self.baseScore())*10
 }
 
-func (self *HandCard) baseScore() int {
-	x, y, z := sortCard(self.cards[0]%100, self.cards[1]%100, self.cards[2]%100)
+func (self HandCard) baseScore() int {
+	x, y, z := sortCard(self.Cards[0]%100, self.Cards[1]%100, self.Cards[2]%100)
 	if isStraight(x, y, z) && x == 2 {
 		return x + y + z - 13
 	}
 	return x + y + z
 }
 
-func (self *HandCard) suitScore() int {
-	x, y, z := self.cards[0], self.cards[1], self.cards[2]
+func (self HandCard) suitScore() int {
+	x, y, z := self.Cards[0], self.Cards[1], self.Cards[2]
 	var baseMax int
 	if x%100 >= y%100 && x%100 >= z%100 {
 		baseMax = x
@@ -57,28 +62,28 @@ func (self *HandCard) suitScore() int {
 	return suitMax
 }
 
-func (self *HandCard) isLeopard() bool {
-	x, y, z := self.cards[0], self.cards[1], self.cards[2]
+func (self HandCard) isLeopard() bool {
+	x, y, z := self.Cards[0], self.Cards[1], self.Cards[2]
 	return isLeopard(x, y, z)
 }
 
-func (self *HandCard) isRoyalFlush() bool {
-	x, y, z := self.cards[0], self.cards[1], self.cards[2]
+func (self HandCard) isRoyalFlush() bool {
+	x, y, z := self.Cards[0], self.Cards[1], self.Cards[2]
 	return isFlush(x, y, z) && isStraight(x, y, z)
 }
 
-func (self *HandCard) isFlush() bool {
-	x, y, z := self.cards[0], self.cards[1], self.cards[2]
+func (self HandCard) isFlush() bool {
+	x, y, z := self.Cards[0], self.Cards[1], self.Cards[2]
 	return isFlush(x, y, z) && !isStraight(x, y, z)
 }
 
-func (self *HandCard) isStraight() bool {
-	x, y, z := self.cards[0], self.cards[1], self.cards[2]
+func (self HandCard) isStraight() bool {
+	x, y, z := self.Cards[0], self.Cards[1], self.Cards[2]
 	return isStraight(x, y, z) && !isFlush(x, y, z)
 }
 
-func (self *HandCard) isPair() bool {
-	x, y, z := self.cards[0]%100, self.cards[1]%100, self.cards[2]%100
+func (self HandCard) isPair() bool {
+	x, y, z := self.Cards[0]%100, self.Cards[1]%100, self.Cards[2]%100
 	return isPair(x, y, z) && !isLeopard(x, y, z)
 }
 

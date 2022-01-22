@@ -1,4 +1,4 @@
-package poker
+package win3cards
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -11,17 +11,17 @@ func TestScore(t *testing.T) {
 		except int
 	}{
 		{
-			hc:     HandCard{cards: [3]int{14, 114, 314}},
+			hc:     HandCard{Cards: [3]int{14, 114, 314}},
 			except: 5420,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 102, 3}},
+			hc:     HandCard{Cards: [3]int{14, 102, 3}},
 			except: 2060,
 		},
 	}
 
 	for i, c := range cases {
-		assert.Equal(t, c.except, c.hc.Score(), i+1)
+		assert.Equal(t, c.except, c.hc.score(), i+1)
 	}
 
 }
@@ -32,11 +32,11 @@ func TestIsLeopard(t *testing.T) {
 		except bool
 	}{
 		{
-			hc:     HandCard{cards: [3]int{14, 114, 314}},
+			hc:     HandCard{Cards: [3]int{14, 114, 314}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 102, 3}},
+			hc:     HandCard{Cards: [3]int{14, 102, 3}},
 			except: false,
 		},
 	}
@@ -53,11 +53,11 @@ func TestIsRoyalFlush(t *testing.T) {
 		except bool
 	}{
 		{
-			hc:     HandCard{cards: [3]int{102, 114, 103}},
+			hc:     HandCard{Cards: [3]int{102, 114, 103}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{2, 114, 3}},
+			hc:     HandCard{Cards: [3]int{2, 114, 3}},
 			except: false,
 		},
 	}
@@ -74,15 +74,15 @@ func TestIsFlush(t *testing.T) {
 		except bool
 	}{
 		{
-			hc:     HandCard{cards: [3]int{14, 2, 4}},
+			hc:     HandCard{Cards: [3]int{14, 2, 4}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 2, 3}},
+			hc:     HandCard{Cards: [3]int{14, 2, 3}},
 			except: false,
 		},
 		{
-			hc:     HandCard{cards: [3]int{2, 114, 3}},
+			hc:     HandCard{Cards: [3]int{2, 114, 3}},
 			except: false,
 		},
 	}
@@ -99,19 +99,19 @@ func TestIsStraight(t *testing.T) {
 		except bool
 	}{
 		{
-			hc:     HandCard{cards: [3]int{14, 102, 103}},
+			hc:     HandCard{Cards: [3]int{14, 102, 103}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{112, 314, 213}},
+			hc:     HandCard{Cards: [3]int{112, 314, 213}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 111, 213}},
+			hc:     HandCard{Cards: [3]int{14, 111, 213}},
 			except: false,
 		},
 		{
-			hc:     HandCard{cards: [3]int{2, 14, 3}},
+			hc:     HandCard{Cards: [3]int{2, 14, 3}},
 			except: false,
 		},
 	}
@@ -128,15 +128,15 @@ func TestIsPair(t *testing.T) {
 		except bool
 	}{
 		{
-			hc:     HandCard{cards: [3]int{14, 114, 302}},
+			hc:     HandCard{Cards: [3]int{14, 114, 302}},
 			except: true,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 114, 314}},
+			hc:     HandCard{Cards: [3]int{14, 114, 314}},
 			except: false,
 		},
 		{
-			hc:     HandCard{cards: [3]int{14, 102, 3}},
+			hc:     HandCard{Cards: [3]int{14, 102, 3}},
 			except: false,
 		},
 	}

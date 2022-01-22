@@ -1,4 +1,4 @@
-package poker
+package win3cards
 
 import (
 	"sync"

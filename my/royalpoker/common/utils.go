@@ -1,4 +1,4 @@
-package poker
+package common
 
 import (
 	"math/rand"
@@ -13,4 +13,9 @@ func RandAlphabetStr(n int) string {
 		b[i] = alphabet[rand.Int63() % int64(26)]
 	}
 	return string(b)
+}
+
+func RandNum(n int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(n)
 }
