@@ -3,7 +3,10 @@ package poker
 import (
 	"context"
 	"github.com/pkg/errors"
+	"sync"
 )
+
+const baseRound = 3
 
 type Hub struct {
 	Owner   int
@@ -23,6 +26,8 @@ type HubSession struct {
 	Seq         []int        // 玩家顺序
 	ReadyInfo   map[int]bool // 准备信息， 全部准备表示已经开局
 	PlaySession *RoundSession
+
+	l sync.Mutex
 }
 
 func (h *Hub) isStarted() bool {
@@ -86,12 +91,6 @@ func (h *Hub) InitHubSession() error {
 	hubs.count = length
 	hubs.ReadyInfo = make(map[int]bool, length)
 	hubs.Seq = make([]int, length)
-	hubs.PlaySession = &RoundSession{
-		Players:   h.Players,
-		handCards: make(map[int]*HandCard, length),
-		PInfo:     make(map[int]*PlayInfo, length),
-		PLog:      make([]string, length*4),
-	}
 
 	// 开局
 	i := 0
@@ -99,22 +98,28 @@ func (h *Hub) InitHubSession() error {
 		hubs.Seq[i] = id
 		hubs.ScoreMap[id] = 0
 		hubs.ReadyInfo[id] = true
-		hubs.PlaySession.PInfo[id] = &PlayInfo{}
 
 		i++
 	}
+	hubs.PlaySession = NewRoundSession(h.Players)
 	return nil
 }
 
 func (h *Hub) Start(ctx context.Context) error {
 	close(h.start)
-	return errors.Wrapf(h.hubSession.Start(ctx), "开局失败：")
+	return errors.Wrapf(h.hubSession.Run(ctx), "开局失败：")
 }
 
-func (hubs *HubSession) Start(ctx context.Context) error {
-	for i := 0; i < hubs.count*3; i++ {
-		hubs.Round = i
-		winner, err := hubs.PlaySession.Play(ctx, hubs.Seq, hubs.Round)
+func (hubs *HubSession) Run(ctx context.Context) error {
+	for r := 0; r < hubs.count*baseRound; r++ {
+		hubs.Round = r
+
+		l := len(hubs.Seq)
+		seq := make([]int, l)
+		for i, id := range hubs.Seq {
+			seq[(r+i)%l] = id
+		}
+		winner, err := hubs.PlaySession.Play(ctx, seq)
 		if err != nil {
 			return err
 		}
@@ -124,9 +129,15 @@ func (hubs *HubSession) Start(ctx context.Context) error {
 	return nil
 }
 
-// TODO[Dokiy] 2022/1/21:
-func (hubs *HubSession) settle(winnerId *Player) {
-	for id, info := range hubs.PlaySession.PInfo {
-
+func (hubs *HubSession) settle(winner *Player) {
+	hubs.l.Lock()
+	{
+		var bet int
+		for id, info := range hubs.PlaySession.PInfo {
+			bet += info.Score
+			hubs.ScoreMap[id] -= info.Score
+		}
+		hubs.ScoreMap[winner.Id] += bet
 	}
+	hubs.l.Unlock()
 }

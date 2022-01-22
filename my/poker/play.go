@@ -26,38 +26,55 @@ type PlayInfo struct {
 	IsOut    bool // 是否出局
 }
 
-func (self *RoundSession) Play(ctx context.Context, seq []int, round int) (winner *Player, err error) {
+func NewRoundSession(players map[int]*Player) *RoundSession {
+	return &RoundSession{Players: players}
+}
+
+func (self *RoundSession) init(seq []int) error {
+	if len(seq) <= 1 {
+		return errors.New("人数不够开局！")
+	}
 	l := len(seq)
-	button := round%l - 1
+	self.handCards = make(map[int]*HandCard, l)
+	self.PInfo = make(map[int]*PlayInfo, l)
+	self.PLog = make([]string, l*4)
+	self.current = 0
 
-	self.seq = make([]int, l)
-	for i := 0; i < l; i++ {
-		id := seq[(i+button)%l]
-
-		self.seq[i] = id
+	self.seq = seq
+	for _, id := range seq {
 		handCard, err := self.Dealer.Deal()
 		if err != nil {
-			return nil, errors.Wrapf(err, "发牌错误：")
+			return errors.Wrapf(err, "发牌错误：")
 		}
 		self.handCards[id] = handCard
+		self.PInfo[id] = &PlayInfo{}
 	}
 
-	{
-		buttonId := seq[button]
-		self.l.Lock()
-		self.PInfo[buttonId].Score -= l * base
-		self.current = (button + 1) % l
-		self.l.Unlock()
+	return nil
+}
+
+func (self *RoundSession) Play(ctx context.Context, seq []int) (winner *Player, err error) {
+	// 初始化开局
+	if err := self.init(seq);err != nil {
+		return nil, errors.Wrapf(err, "初始化开局错误：")
 	}
+
+	// 庄家下庄
+	self.l.Lock()
+	{
+		i := ((self.current + len(self.seq)) - 1)%len(self.seq)
+		self.getPInfoByIndex(i).Score -= len(self.seq) * base
+	}
+	self.l.Unlock()
 
 	for {
 		// TODO[Dokiy] 2022/1/21:  发送广播消息给所有玩家
 		select {
-		case a := self.currentPlayer().WaitDo(ctx):
+		case a := self.currentPlayer().Action(ctx):
 			// TODO[Dokiy] 2022/1/21: 等待当前玩家操作
 		}
 
-		if !self.next() {
+		if !self.nextPlayer() {
 			break
 		}
 	}
@@ -65,10 +82,10 @@ func (self *RoundSession) Play(ctx context.Context, seq []int, round int) (winne
 	return self.currentPlayer(), nil
 }
 
-func (self *RoundSession) next() (ok bool) {
+func (self *RoundSession) nextPlayer() (ok bool) {
 	for i := 1; i < len(self.seq); i++ {
 		index := (self.current + i) % len(self.seq)
-		if info:= self.getPInfoByIndex(index); !info.IsOut {
+		if info := self.getPInfoByIndex(index); !info.IsOut {
 			self.current = index
 			return true
 		}
@@ -76,6 +93,8 @@ func (self *RoundSession) next() (ok bool) {
 
 	return false
 }
+
+// =========================================================
 
 func (self *RoundSession) currentPlayer() *Player {
 	return self.getPlayerByIndex(self.current)
@@ -85,6 +104,10 @@ func (self *RoundSession) getPInfoByIndex(i int) *PlayInfo {
 	return self.PInfo[self.seq[i]]
 }
 
+func (self *RoundSession) getPInfoById(id int) *PlayInfo {
+	return self.PInfo[id]
+}
+
 func (self *RoundSession) getPlayerByIndex(i int) *Player {
 	return self.getPlayerById(self.seq[i])
 }
@@ -92,4 +115,3 @@ func (self *RoundSession) getPlayerByIndex(i int) *Player {
 func (self *RoundSession) getPlayerById(id int) *Player {
 	return self.Players[id]
 }
-
