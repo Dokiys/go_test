@@ -12,29 +12,43 @@ type Player struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	action chan string
 	// Buffered channel of outbound messages.
-	//send chan []byte
+	send   chan []byte
+	recive chan []byte
 }
 
 func NewPlayer(conn *websocket.Conn) *Player {
-	return &Player{
+	player := &Player{
 		Id:   0,
 		conn: conn,
-		//send: nil,
+		send: make(chan []byte),
 	}
+	go func() {
+		for {
+			select {
+			case msg := <-player.send:
+				err := player.conn.WriteJSON(msg)
+				logrus.Errorf("推送玩家消息[%s]错误：%s", msg, err.Error())
+			}
+		}
+	}()
+	return player
+}
+func (self *Player) Send(data []byte) {
+	self.send <- data
 }
 
-func (self *Player) WaitAction(ctx context.Context) string {
+func (self *Player) WaitAction(ctx context.Context, data []byte) []byte {
+	self.Send(data)
+
+	self.recive = make(chan []byte)
 	for {
 		select {
-		case action := <- self.action:
+		case action := <-self.recive:
+			close(self.recive)
 			return action
-		case <- time.After(10*time.Second):
-			// TODO[Dokiy] 2022/1/22: 定义一个包含当前玩家可以操作信息的结构体
-			// TODO[Dokiy] 2022/1/22: 填写添加内容
-			err := self.conn.WriteJSON(``)
-			logrus.Errorf("推送玩家操作提醒错误：",err)
+		case <-time.After(10 * time.Second):
+			self.Send(data)
 		}
 	}
 }

@@ -9,6 +9,9 @@ func (self HandCard) Version() string {
 	return self.V
 }
 
+func Compare(h1 HandCard,h2 HandCard) bool {
+	return h1.Score() > h2.Score()
+}
 
 func (self HandCard) Score() (score int) {
 	if self.isLeopard() {

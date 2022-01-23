@@ -55,6 +55,7 @@ func (self *w3cSession) Run(ctx context.Context, players map[int]*common.Player)
 	}
 	for r := 0; r < self.count*baseRound; r++ {
 		self.Round = r
+		// TODO[Dokiy] 2022/1/23: 等待玩家准备开始新游戏
 
 		l := len(self.Seq)
 		seq := make([]int, l)
@@ -69,6 +70,8 @@ func (self *w3cSession) Run(ctx context.Context, players map[int]*common.Player)
 
 		self.settle(winner)
 	}
+
+	// TODO[Dokiy] 2022/1/23: 发送最后结果给所有玩家
 	return nil
 }
 

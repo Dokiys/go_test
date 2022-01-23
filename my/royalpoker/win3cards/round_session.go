@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/dokiy/royalpoker/common"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -11,9 +12,12 @@ const base = 1
 
 type RoundSession struct {
 	Players   map[int]*common.Player // key playerId
-	handCards map[int]HandCard        // 玩家底牌 key playerId
-	PInfo     map[int]*PlayInfo       // 本局台面信息 key playerId
-	PLog      []string                // 回合操作流水
+	handCards map[int]HandCard       // 玩家底牌 key playerId
+	MaxBet    int                    // 当前轮注码(开牌值计算)
+	PInfo     map[int]*PlayInfo      // 本局玩家信息 key playerId
+	PLog      []string               // 回合操作流水
+
+	ViewLog    map[int][]int // 看牌记录
 
 	seq     []int // 本局playerId顺序
 	current int   // 当前步骤玩家index
@@ -39,6 +43,7 @@ func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
 	self.PInfo = make(map[int]*PlayInfo, l)
 	self.PLog = make([]string, l*4)
 	self.current = 0
+	self.MaxBet = base * 2
 
 	self.seq = seq
 	for _, id := range seq {
@@ -67,31 +72,53 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 	}
 	self.l.Unlock()
 
+	var showWinner bool
 	for {
 		// TODO[Dokiy] 2022/1/21:  发送广播消息给所有玩家
 		// ...
 
-		// TODO[Dokiy] 2022/1/21: 等待当前玩家操作
-		action := self.currentPlayer().WaitAction(ctx)
-		print(action)
-		// TODO[Dokiy] 2022/1/22: 处理当前玩家的操作
-		// 1 跟，2 加注，3 弃牌，4，看牌 5，开其他玩家的牌，
-		{
-
-		}
-
-		if isContinued(action) {
+		msg := "msg"
+		//data := self.Caller.WaitAction(ctx, playerId, []byte(msg))
+		data := self.CurrentPlayer().WaitAction(ctx, []byte(msg))
+		action, err := toAction(data)
+		if err != nil {
+			logrus.Errorf("解析玩家操作消息错误：%s", err.Error())
 			continue
 		}
-		if !self.nextPlayer() {
+
+		{
+			err := action.do(self)
+			if err != nil {
+				// TODO[Dokiy] 2022/1/23: 添加错误信息，重新让该用户操作
+				msg = err.Error()
+				continue
+			}
+
+			if action.isContinued() {
+				continue
+			}
+		}
+
+		// 如果没有下一个玩家，结束游戏
+		if !self.next() {
+
+			// 如果最后开牌结束，则需要看赢家的牌
+			if action.isContinued() {
+				showWinner = true
+			}
 			break
 		}
 	}
 
-	return self.currentPlayer(), nil
+	// TODO[Dokiy] 2022/1/23: 处理开牌, 给所有玩家发送底牌
+	{
+		print(showWinner)
+	}
+
+	return self.CurrentPlayer(), nil
 }
 
-func (self *RoundSession) nextPlayer() (ok bool) {
+func (self *RoundSession) next() (ok bool) {
 	for i := 1; i < len(self.seq); i++ {
 		index := (self.current + i) % len(self.seq)
 		if info := self.getPInfoByIndex(index); !info.IsOut {
@@ -105,8 +132,12 @@ func (self *RoundSession) nextPlayer() (ok bool) {
 
 // =========================================================
 
-func (self *RoundSession) currentPlayer() *common.Player {
+func (self *RoundSession) CurrentPlayer() *common.Player {
 	return self.getPlayerByIndex(self.current)
+}
+
+func (self *RoundSession) CurrentPInfo() *PlayInfo {
+	return self.PInfo[self.current]
 }
 
 func (self *RoundSession) getPInfoByIndex(i int) *PlayInfo {
