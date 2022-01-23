@@ -2,7 +2,6 @@ package win3cards
 
 import (
 	"context"
-	"github.com/dokiy/royalpoker/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -11,17 +10,19 @@ import (
 const base = 1
 
 type RoundSession struct {
-	Players   map[int]*common.Player // key playerId
-	handCards map[int]HandCard       // 玩家底牌 key playerId
-	MaxBet    int                    // 当前轮注码(开牌值计算)
-	PInfo     map[int]*PlayInfo      // 本局玩家信息 key playerId
-	PLog      []string               // 回合操作流水
+	Players   []int             // 玩家Id
+	handCards map[int]HandCard  // 玩家底牌 key playerId
+	MaxBet    int               // 当前轮注码(开牌值计算)
+	PInfo     map[int]*PlayInfo // 本局玩家信息 key playerId
+	PLog      []string          // 回合操作流水
 
-	ViewLog    map[int][]int // 看牌记录
+	ViewLog map[int][]int // 看牌记录
 
-	seq     []int // 本局playerId顺序
-	current int   // 当前步骤玩家index
-	l       sync.Mutex
+	Caller   func(ctx context.Context, id int, msg []byte) // 向Player发送消息
+	Receiver func(ctx context.Context, id int) []byte      // 从Player接收消息
+	seq      []int                                         // 本局playerId顺序
+	current  int                                           // 当前步骤玩家index
+	l        sync.Mutex
 }
 
 type PlayInfo struct {
@@ -30,8 +31,15 @@ type PlayInfo struct {
 	IsOut    bool // 是否出局
 }
 
-func NewRoundSession(players map[int]*common.Player) *RoundSession {
-	return &RoundSession{Players: players}
+func NewRoundSession(players []int,
+	caller func(context.Context, int, []byte),
+	receiver func(context.Context, int) []byte) *RoundSession {
+
+	return &RoundSession{
+		Players:  players,
+		Caller:   caller,
+		Receiver: receiver,
+	}
 }
 
 func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
@@ -58,10 +66,10 @@ func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
 	return nil
 }
 
-func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int) (winner *common.Player, err error) {
+func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int) (winner int, err error) {
 	// 初始化开局
 	if err := self.init(poker, seq); err != nil {
-		return nil, errors.Wrapf(err, "初始化开局错误：")
+		return 0, errors.Wrapf(err, "初始化开局错误：")
 	}
 
 	// 庄家下庄
@@ -77,9 +85,11 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 		// TODO[Dokiy] 2022/1/21:  发送广播消息给所有玩家
 		// ...
 
+		// TODO[Dokiy] 2022/1/23: 定义广播消息结构体 to be continued
 		msg := "msg"
 		//data := self.Caller.WaitAction(ctx, playerId, []byte(msg))
-		data := self.CurrentPlayer().WaitAction(ctx, []byte(msg))
+		data := self.WaitAction(ctx, []byte(msg))
+		//self.Caller()
 		action, err := toAction(data)
 		if err != nil {
 			logrus.Errorf("解析玩家操作消息错误：%s", err.Error())
@@ -103,7 +113,7 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 		if !self.next() {
 
 			// 如果最后开牌结束，则需要看赢家的牌
-			if action.isContinued() {
+			if action.isShow() {
 				showWinner = true
 			}
 			break
@@ -132,12 +142,17 @@ func (self *RoundSession) next() (ok bool) {
 
 // =========================================================
 
-func (self *RoundSession) CurrentPlayer() *common.Player {
+func (self *RoundSession) WaitAction(ctx context.Context, msg []byte) []byte {
+	self.Caller(ctx, self.CurrentPlayer(), msg)
+	return self.Receiver(ctx, self.CurrentPlayer())
+}
+
+func (self *RoundSession) CurrentPlayer() int {
 	return self.getPlayerByIndex(self.current)
 }
 
 func (self *RoundSession) CurrentPInfo() *PlayInfo {
-	return self.PInfo[self.current]
+	return self.getPInfoByIndex(self.current)
 }
 
 func (self *RoundSession) getPInfoByIndex(i int) *PlayInfo {
@@ -148,10 +163,6 @@ func (self *RoundSession) getPInfoById(id int) *PlayInfo {
 	return self.PInfo[id]
 }
 
-func (self *RoundSession) getPlayerByIndex(i int) *common.Player {
-	return self.getPlayerById(self.seq[i])
-}
-
-func (self *RoundSession) getPlayerById(id int) *common.Player {
-	return self.Players[id]
+func (self *RoundSession) getPlayerByIndex(i int) int {
+	return self.seq[i]
 }

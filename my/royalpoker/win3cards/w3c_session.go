@@ -2,7 +2,6 @@ package win3cards
 
 import (
 	"context"
-	"github.com/dokiy/royalpoker/common"
 	"github.com/pkg/errors"
 	"sync"
 )
@@ -10,7 +9,7 @@ import (
 const baseRound = 3
 
 type w3cSession struct {
-	Players      map[int]*common.Player
+	Players      []int // 玩家id
 	Poker        *Win3Cards
 	count        int          // 玩家人数
 	Round        int          // 当前回合数
@@ -19,14 +18,16 @@ type w3cSession struct {
 	ReadyInfo    map[int]bool // 准备信息， 全部准备表示已经开局
 	RoundSession *RoundSession
 
-	l sync.Mutex
+	Caller   func(ctx context.Context, id int, msg []byte) // 向Player发送消息
+	Receiver func(ctx context.Context, id int) []byte      // 向Player发送消息
+	l        sync.Mutex
 }
 
-func NewW3CSession() *w3cSession {
-	return &w3cSession{}
+func NewW3CSession(caller func(context.Context, int, []byte), receiver func(context.Context, int) []byte) *w3cSession {
+	return &w3cSession{Caller: caller, Receiver: receiver}
 }
 
-func (self *w3cSession) init(players map[int]*common.Player) error {
+func (self *w3cSession) init(players []int) error {
 	// Init
 	length := len(players)
 	self.Players = players
@@ -44,14 +45,14 @@ func (self *w3cSession) init(players map[int]*common.Player) error {
 
 		i++
 	}
-	self.RoundSession = NewRoundSession(players)
+	self.RoundSession = NewRoundSession(players, self.Caller, self.Receiver)
 	return nil
 }
 
-func (self *w3cSession) Run(ctx context.Context, players map[int]*common.Player) error {
+func (self *w3cSession) Run(ctx context.Context, players []int) error {
 	err := self.init(players)
 	if err != nil {
-		return errors.Wrapf(err,"初始化开局信息失败：")
+		return errors.Wrapf(err, "初始化开局信息失败：")
 	}
 	for r := 0; r < self.count*baseRound; r++ {
 		self.Round = r
@@ -75,7 +76,7 @@ func (self *w3cSession) Run(ctx context.Context, players map[int]*common.Player)
 	return nil
 }
 
-func (self *w3cSession) settle(winner *common.Player) {
+func (self *w3cSession) settle(winner int) {
 	self.l.Lock()
 	{
 		var bet int
@@ -83,7 +84,7 @@ func (self *w3cSession) settle(winner *common.Player) {
 			bet += info.Score
 			self.ScoreMap[id] -= info.Score
 		}
-		self.ScoreMap[winner.Id] += bet
+		self.ScoreMap[winner] += bet
 	}
 	self.l.Unlock()
 }

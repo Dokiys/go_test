@@ -49,6 +49,7 @@ func (self Action) do(rs *RoundSession) error {
 
 	case ACTION_VIEW:
 		rs.CurrentPInfo().IsViewed = true
+		// TODO[Dokiy] 2022/1/24:  发送消息给看牌玩家
 
 	case ACTION_SHOW:
 		rs.l.Lock()
@@ -72,23 +73,16 @@ func (self Action) do(rs *RoundSession) error {
 			pInfo1.Score -= self.Bet
 		}
 
-		// 开牌
+		// 开牌, 并记录给开牌输家看牌
 		{
 			h1, h2 := rs.handCards[rs.current], rs.handCards[self.ShowId]
 			if Compare(h1, h2) {
 				pInfo1.IsOut = true
+				rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowId)
 			} else {
 				pInfo2.IsOut = true
+				rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.current)
 			}
-
-			// 记录给开牌双方看牌
-			rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowId)
-			rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.current)
-		}
-
-		// 开赢家牌
-		{
-
 		}
 	}
 

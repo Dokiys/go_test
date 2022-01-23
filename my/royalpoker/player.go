@@ -1,10 +1,9 @@
-package common
+package royalpoker
 
 import (
 	"context"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type Player struct {
@@ -34,21 +33,14 @@ func NewPlayer(conn *websocket.Conn) *Player {
 	}()
 	return player
 }
-func (self *Player) Send(data []byte) {
+
+func (self *Player) Send(ctx context.Context, data []byte) {
 	self.send <- data
 }
 
-func (self *Player) WaitAction(ctx context.Context, data []byte) []byte {
-	self.Send(data)
-
+func (self *Player) Receive(ctx context.Context) []byte {
 	self.recive = make(chan []byte)
-	for {
-		select {
-		case action := <-self.recive:
-			close(self.recive)
-			return action
-		case <-time.After(10 * time.Second):
-			self.Send(data)
-		}
-	}
+	data := <-self.recive
+	close(self.recive)
+	return data
 }

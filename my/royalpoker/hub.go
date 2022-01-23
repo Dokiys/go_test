@@ -9,13 +9,12 @@ import (
 )
 
 type PlaySession interface {
-	Run(ctx context.Context, players map[int]*common.Player) error
+	Run(ctx context.Context, players []int) error
 }
 type Hub struct {
 	Id      int
 	Owner   int
-	Players map[int]*common.Player
-	//Broadcast chan []byte
+	Players map[int]*Player
 
 	isStarted   bool
 	playSession PlaySession
@@ -23,25 +22,25 @@ type Hub struct {
 
 func NewHub(ownerId int) *Hub {
 	id := common.RandNum(6)
-	return &Hub{
-		Id:          id,
-		Owner:       ownerId,
-		Players:     make(map[int]*common.Player),
-		playSession: win3cards.NewW3CSession(),
-		//Broadcast:  make(chan []byte),
+	hub := &Hub{
+		Id:      id,
+		Owner:   ownerId,
+		Players: make(map[int]*Player),
 	}
+	hub.playSession = win3cards.NewW3CSession(hub.CallPlayer, hub.ReceivePlayer)
+	return hub
 }
 
-func (self *Hub) Register(conn *websocket.Conn) (*common.Player, error) {
+func (self *Hub) Register(conn *websocket.Conn) (*Player, error) {
 	if self.isStarted {
 		return nil, errors.New("游戏已开始！")
 	}
-	player := common.NewPlayer(conn)
+	player := NewPlayer(conn)
 	self.Players[player.Id] = player
 	return player, nil
 }
 
-func (self *Hub) Unregister(player *common.Player) error {
+func (self *Hub) Unregister(player *Player) error {
 	if self.isStarted {
 		return errors.New("游戏已结束！")
 	}
@@ -66,5 +65,17 @@ func (self *Hub) Run() error {
 
 func (self *Hub) Start(ctx context.Context) error {
 	self.isStarted = true
-	return errors.Wrapf(self.playSession.Run(ctx, self.Players), "开局失败：")
+	var players = make([]int, len(self.Players))
+	for i, player := range self.Players {
+		players[i] = player.Id
+	}
+	return errors.Wrapf(self.playSession.Run(ctx, players), "开局失败：")
+}
+
+func (self *Hub) CallPlayer(ctx context.Context, id int, msg []byte) {
+	self.Players[id].Send(ctx, msg)
+}
+
+func (self *Hub) ReceivePlayer(ctx context.Context, id int) []byte {
+	return self.Players[id].Receive(ctx)
 }
