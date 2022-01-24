@@ -38,9 +38,16 @@ func (self *Player) Send(ctx context.Context, data []byte) {
 	self.send <- data
 }
 
+// TODO[Dokiy] 2022/1/24: 阻塞读取当前玩家的消息
 func (self *Player) Receive(ctx context.Context) []byte {
-	self.recive = make(chan []byte)
-	data := <-self.recive
-	close(self.recive)
-	return data
+	ch := make(chan []byte)
+	go func() {
+		select {
+		case self.recive <- <- ch:
+		}
+
+		close(ch)
+	}()
+
+	return <-self.recive
 }

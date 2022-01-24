@@ -18,11 +18,11 @@ type RoundSession struct {
 
 	ViewLog map[int][]int // 看牌记录
 
-	Caller   func(ctx context.Context, id int, msg []byte) // 向Player发送消息
-	Receiver func(ctx context.Context, id int) []byte      // 从Player接收消息
-	seq      []int                                         // 本局playerId顺序
-	current  int                                           // 当前步骤玩家index
-	l        sync.Mutex
+	Caller     func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
+	Receiver   func(ctx context.Context, id int) ([]byte, error)   // 从Player接收消息
+	seq        []int                                               // 本局playerId顺序
+	current    int                                                 // 当前步骤玩家index
+	l          sync.Mutex
 }
 
 type PlayInfo struct {
@@ -32,8 +32,8 @@ type PlayInfo struct {
 }
 
 func NewRoundSession(players []int,
-	caller func(context.Context, int, []byte),
-	receiver func(context.Context, int) []byte) *RoundSession {
+	caller func(context.Context, int, []byte) error,
+	receiver func(context.Context, int) ([]byte, error)) *RoundSession {
 
 	return &RoundSession{
 		Players:  players,
@@ -66,7 +66,7 @@ func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
 	return nil
 }
 
-func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int) (winner int, err error) {
+func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, seq []int) (winner int, err error) {
 	// 初始化开局
 	if err := self.init(poker, seq); err != nil {
 		return 0, errors.Wrapf(err, "初始化开局错误：")
@@ -82,8 +82,11 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 		self.BroadcastSession(ctx)
 
 		// 等待当前玩家操作
-		data := self.waitAction(ctx)
-
+		data, err := self.waitAction(ctx)
+		if err != nil {
+			logrus.Errorf("接收玩家操作消息错误：%s", err.Error())
+			continue
+		}
 		// 处理玩家操作
 		action, err := toAction(data)
 		if err != nil {
@@ -102,11 +105,8 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 
 		// 如果没有下一个玩家，结束游戏
 		if !self.next() {
-
 			// 如果最后开牌结束，则需要看赢家的牌
-			if action.isShow() {
-				showWinner = true
-			}
+			showWinner = action.isShow()
 			break
 		}
 	}
@@ -135,9 +135,13 @@ func (self *RoundSession) blind() {
 	self.getPInfoByIndex(i).Score += l * base
 }
 
-func (self *RoundSession) waitAction(ctx context.Context) []byte {
-	self.Caller(ctx, self.currentPlayer(), GenInfoMsg("It's your turn！"))
-	return self.Receiver(ctx, self.currentPlayer())
+func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
+	go self.Caller(ctx, self.currentPlayer(), GenInfoMsg( "It's your turn！"))
+	data, err := self.Receiver(ctx, self.currentPlayer())
+	if err != nil {
+		return nil, errors.Wrapf(err, "接收操作失败！")
+	}
+	return data, nil
 }
 
 func (self *RoundSession) next() (ok bool) {

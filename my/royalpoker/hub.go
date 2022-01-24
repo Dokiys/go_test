@@ -2,6 +2,7 @@ package royalpoker
 
 import (
 	"context"
+	"fmt"
 	"github.com/dokiy/royalpoker/common"
 	"github.com/dokiy/royalpoker/win3cards"
 	"github.com/gorilla/websocket"
@@ -72,10 +73,19 @@ func (self *Hub) Start(ctx context.Context) error {
 	return errors.Wrapf(self.playSession.Run(ctx, players), "开局失败：")
 }
 
-func (self *Hub) CallPlayer(ctx context.Context, id int, msg []byte) {
-	self.Players[id].Send(ctx, msg)
+func (self *Hub) CallPlayer(ctx context.Context, id int, msg []byte) error {
+	player, ok := self.Players[id]
+	if !ok {
+		return errors.New(fmt.Sprintf("接收数据错误：未找到玩家[%d]", id))
+	}
+	player.Send(ctx, msg)
+	return nil
 }
 
-func (self *Hub) ReceivePlayer(ctx context.Context, id int) []byte {
-	return self.Players[id].Receive(ctx)
+func (self *Hub) ReceivePlayer(ctx context.Context, id int) ([]byte,error) {
+	player, ok := self.Players[id]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("接收数据错误：未找到玩家[%d]", id))
+	}
+	return player.Receive(ctx), nil
 }

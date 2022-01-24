@@ -3,12 +3,13 @@ package win3cards
 import (
 	"context"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
 const baseRound = 3
 
-type w3cSession struct {
+type W3cSession struct {
 	Players      []int // 玩家id
 	Poker        *Win3Cards
 	count        int          // 玩家人数
@@ -18,16 +19,16 @@ type w3cSession struct {
 	ReadyInfo    map[int]bool // 准备信息， 全部准备表示已经开局
 	RoundSession *RoundSession
 
-	Caller   func(ctx context.Context, id int, msg []byte) // 向Player发送消息
-	Receiver func(ctx context.Context, id int) []byte      // 向Player发送消息
+	Caller   func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
+	Receiver func(ctx context.Context, id int) ([]byte, error)   // 向Player发送消息
 	l        sync.Mutex
 }
 
-func NewW3CSession(caller func(context.Context, int, []byte), receiver func(context.Context, int) []byte) *w3cSession {
-	return &w3cSession{Caller: caller, Receiver: receiver}
+func NewW3CSession(caller func(context.Context, int, []byte) error, receiver func(context.Context, int) ([]byte, error)) *W3cSession {
+	return &W3cSession{Caller: caller, Receiver: receiver}
 }
 
-func (self *w3cSession) init(players []int) error {
+func (self *W3cSession) init(players []int) error {
 	// Init
 	length := len(players)
 	self.Players = players
@@ -49,34 +50,110 @@ func (self *w3cSession) init(players []int) error {
 	return nil
 }
 
-func (self *w3cSession) Run(ctx context.Context, players []int) error {
+func (self *W3cSession) Run(ctx context.Context, players []int) error {
 	err := self.init(players)
 	if err != nil {
 		return errors.Wrapf(err, "初始化开局信息失败：")
 	}
-	for r := 0; r < self.count*baseRound; r++ {
+
+	// 发送局面信息
+	self.BroadcastSession(ctx)
+	for r := 1; r <= self.count*baseRound; r++ {
 		self.Round = r
-		// TODO[Dokiy] 2022/1/23: 等待玩家准备开始新游戏
+		// 等待玩家准备
+		self.WaitReady(ctx)
+		self.BroadcastMsg(ctx, "游戏开始！")
 
-		l := len(self.Seq)
-		seq := make([]int, l)
-		for i, id := range self.Seq {
-			seq[(r+i)%l] = id
-		}
-		self.Poker.CutTheDeck()
-		winner, err := self.RoundSession.Play(ctx, self.Poker, seq)
-		if err != nil {
-			return err
+		// 开始
+		winner, err := self.Play(ctx, r)
+		if err!= nil {
+			return errors.Wrapf(err, "开局失败：")
 		}
 
-		self.settle(winner)
+		// 结算
+		self.Settle(winner)
+		// 发送局面信息
+		self.BroadcastSession(ctx)
 	}
 
-	// TODO[Dokiy] 2022/1/23: 更新结果，并发送准备消息
+	// 结束信息
+	self.BroadcastResult(ctx)
 	return nil
 }
 
-func (self *w3cSession) settle(winner int) {
+func (self *W3cSession) WaitReady(ctx context.Context) {
+	var wg sync.WaitGroup
+	for _, playerId := range self.Players {
+		wg.Add(1)
+		go func(id int) {
+			for {
+				data, err := self.Receiver(ctx, id)
+				if err != nil {
+					logrus.Errorf("等待玩家准备时，接收操作错误：", err.Error())
+					continue
+				}
+
+				action, err := toAction(data)
+				if err != nil {
+					logrus.Errorf("解析玩家操作消息错误：%s", err.Error())
+					continue
+				}
+				if !action.isW3CReady() {
+					logrus.Errorf("玩家操作错误，需要进行准备操作！")
+					continue
+				}
+
+				self.ReadyInfo[id] = true
+				self.BroadcastSession(ctx)
+				break
+			}
+			wg.Done()
+		}(playerId)
+	}
+	wg.Wait()
+}
+
+func (self *W3cSession) Play(ctx context.Context, round int) (int, error) {
+	l := len(self.Seq)
+	seq := make([]int, l)
+	for i, id := range self.Seq {
+		seq[(round+i)%l] = id
+	}
+	self.Poker.CutTheDeck()
+	winner, err := self.RoundSession.Run(ctx, self.Poker, seq)
+	if err != nil {
+		return 0, err
+	}
+
+	return winner, nil
+}
+
+func (self *W3cSession) InfoPlayer(ctx context.Context, id int, msg string) {
+	go self.Caller(ctx, id, []byte(msg))
+}
+
+func (self *W3cSession) BroadcastMsg(ctx context.Context, msg string) {
+	data := GenInfoMsg(msg)
+	for _, id := range self.Players {
+		go self.Caller(ctx, id, data)
+	}
+}
+
+func (self *W3cSession) BroadcastSession(ctx context.Context) {
+	data := GenW3cSessionMsg(self)
+	for _, id := range self.Players {
+		go self.Caller(ctx, id, data)
+	}
+}
+
+func (self *W3cSession) BroadcastResult(ctx context.Context) {
+	data := GenW3cResultMsg(self)
+	for _, id := range self.Players {
+		go self.Caller(ctx, id, data)
+	}
+}
+
+func (self *W3cSession) Settle(winner int) {
 	self.l.Lock()
 	{
 		var bet int
@@ -85,6 +162,11 @@ func (self *w3cSession) settle(winner int) {
 			self.ScoreMap[id] -= info.Score
 		}
 		self.ScoreMap[winner] += bet
+
+		// 取消准备
+		for id, _ := range self.ReadyInfo {
+			self.ReadyInfo[id] = false
+		}
 	}
 	self.l.Unlock()
 }

@@ -9,12 +9,14 @@ import (
 
 type ActionType string
 type Action struct {
-	ActionMsg ActionType
-	Bet       int
+	ActionType ActionType
+	Bet        int
 	ShowId    int
 }
 
 const (
+	W3C_ACTION_READY = "W3C_ACTION_READY"
+
 	ACTION_IN   = "ACTION_IN"
 	ACTION_OUT  = "ACTION_OUT"
 	ACTION_VIEW = "ACTION_VIEW"
@@ -22,7 +24,7 @@ const (
 )
 
 func (self Action) do(ctx context.Context, rs *RoundSession) error {
-	switch self.ActionMsg {
+	switch self.ActionType {
 	case ACTION_IN:
 		rs.l.Lock()
 		defer rs.l.Unlock()
@@ -104,7 +106,7 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 func (self *Action) genPLog(rs *RoundSession) (plog string) {
 	plog = fmt.Sprintf("[%d]号玩家", rs.current)
-	switch self.ActionMsg {
+	switch self.ActionType {
 	case ACTION_IN:
 		plog = fmt.Sprintf("%s【跟注】：【%d】", plog, self.Bet)
 	case ACTION_OUT:
@@ -130,9 +132,14 @@ func toAction(data []byte) (Action, error) {
 }
 
 func (self Action) isContinued() bool {
-	return self.ActionMsg == ACTION_VIEW
+	return self.ActionType == ACTION_VIEW
 }
 
 func (self Action) isShow() bool {
-	return self.ActionMsg == ACTION_SHOW
+	return self.ActionType == ACTION_SHOW
+}
+
+
+func (self Action) isW3CReady() bool {
+	return self.ActionType == W3C_ACTION_READY
 }
