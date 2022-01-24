@@ -1,13 +1,15 @@
 package win3cards
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 )
 
-type ActionMsg string
+type ActionType string
 type Action struct {
-	ActionMsg ActionMsg
+	ActionMsg ActionType
 	Bet       int
 	ShowId    int
 }
@@ -19,13 +21,13 @@ const (
 	ACTION_SHOW = "ACTION_SHOW"
 )
 
-func (self Action) do(rs *RoundSession) error {
+func (self Action) do(ctx context.Context, rs *RoundSession) error {
 	switch self.ActionMsg {
 	case ACTION_IN:
 		rs.l.Lock()
 		defer rs.l.Unlock()
 
-		pInfo := rs.CurrentPInfo()
+		pInfo := rs.currentPInfo()
 		if pInfo.IsOut {
 			return errors.New("已经出局的玩家不能进行下注！")
 		}
@@ -40,22 +42,26 @@ func (self Action) do(rs *RoundSession) error {
 				return errors.New("下注必须大于当前最大注码！")
 			}
 
-			pInfo.Score -= self.Bet
+			pInfo.Score += self.Bet
 			rs.MaxBet = self.Bet * base
 		}
 
 	case ACTION_OUT:
-		rs.CurrentPInfo().IsOut = true
+		rs.currentPInfo().IsOut = true
 
 	case ACTION_VIEW:
-		rs.CurrentPInfo().IsViewed = true
-		// TODO[Dokiy] 2022/1/24:  发送消息给看牌玩家
+		rs.currentPInfo().IsViewed = true
+		handCard := rs.handCards[rs.currentPlayer()]
+		rs.Caller(ctx, rs.currentPlayer(), GenActionViewMsg(handCard))
 
 	case ACTION_SHOW:
 		rs.l.Lock()
 		defer rs.l.Unlock()
 
-		pInfo1, pInfo2 := rs.CurrentPInfo(), rs.getPInfoById(self.ShowId)
+		pInfo1, pInfo2 := rs.currentPInfo(), rs.getPInfoById(self.ShowId)
+		if pInfo2 == nil {
+			return errors.Errorf("错误：未找到该玩家【%d】！", self.ShowId)
+		}
 		if pInfo1.IsOut || pInfo2.IsOut {
 			return errors.New("已经出局的玩家不能(被)开牌！")
 		}
@@ -70,23 +76,57 @@ func (self Action) do(rs *RoundSession) error {
 				return errors.New("下注必须大于当前最大注码！")
 			}
 
-			pInfo1.Score -= self.Bet
+			pInfo1.Score += self.Bet
 		}
 
 		// 开牌, 并记录给开牌输家看牌
 		{
 			h1, h2 := rs.handCards[rs.current], rs.handCards[self.ShowId]
-			if Compare(h1, h2) {
-				pInfo1.IsOut = true
-				rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowId)
-			} else {
+			if h2.v == "" {
+				return errors.Errorf("错误：未找到该玩家底牌【%d】！", self.ShowId)
+			}
+
+			// 开牌者可以看到被开者到牌
+			rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowId)
+			if !Compare(h1, h2) {
+				// 被开牌者如果输了也可以看到开牌者的牌
 				pInfo2.IsOut = true
 				rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.current)
 			}
 		}
 	}
 
+	rs.PLog = append(rs.PLog, self.genPLog(rs))
 	return nil
+}
+
+// ==========================================
+
+func (self *Action) genPLog(rs *RoundSession) (plog string) {
+	plog = fmt.Sprintf("[%d]号玩家", rs.current)
+	switch self.ActionMsg {
+	case ACTION_IN:
+		plog = fmt.Sprintf("%s【跟注】：【%d】", plog, self.Bet)
+	case ACTION_OUT:
+		plog = fmt.Sprintf("%s【弃牌】", plog)
+	case ACTION_VIEW:
+		plog = fmt.Sprintf("%s进行了【看牌】", plog)
+	case ACTION_SHOW:
+		var outId int
+		if rs.currentPInfo().IsOut {
+			outId = rs.currentPlayer()
+		} else {
+			outId = self.ShowId
+		}
+		plog = fmt.Sprintf("%s【开牌】[%d]号玩家：[%d]号玩家出局", plog, self.ShowId, outId)
+	}
+
+	return plog
+}
+
+func toAction(data []byte) (Action, error) {
+	action := &Action{}
+	return *action, errors.Wrapf(json.Unmarshal(data, action), "解析操作消息错误：")
 }
 
 func (self Action) isContinued() bool {
@@ -95,11 +135,4 @@ func (self Action) isContinued() bool {
 
 func (self Action) isShow() bool {
 	return self.ActionMsg == ACTION_SHOW
-}
-
-// ==========================================
-
-func toAction(data []byte) (Action, error) {
-	action := &Action{}
-	return *action, errors.Wrapf(json.Unmarshal(data, action), "解析操作消息错误：")
 }

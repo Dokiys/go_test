@@ -48,6 +48,6 @@ func (self *Win3Cards) Deal() (HandCard, error) {
 	}
 
 	stack.c++
-	return HandCard{Cards: cards, V: stack.v}, nil
+	return HandCard{Cards: cards, v: stack.v}, nil
 }
 

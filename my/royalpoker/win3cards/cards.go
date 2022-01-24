@@ -2,11 +2,11 @@ package win3cards
 
 type HandCard struct {
 	Cards [3]int
-	V     string
+	v string
 }
 
 func (self HandCard) Version() string {
-	return self.V
+	return self.v
 }
 
 func Compare(h1 HandCard,h2 HandCard) bool {

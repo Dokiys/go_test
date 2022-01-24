@@ -72,7 +72,7 @@ func (self *w3cSession) Run(ctx context.Context, players []int) error {
 		self.settle(winner)
 	}
 
-	// TODO[Dokiy] 2022/1/23: 发送最后结果给所有玩家
+	// TODO[Dokiy] 2022/1/23: 更新结果，并发送准备消息
 	return nil
 }
 

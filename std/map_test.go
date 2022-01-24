@@ -46,4 +46,8 @@ func TestMapOK(t *testing.T) {
 	v2, ok2 := m[2]
 	t.Logf("m[2] value: %d",v2)
 	t.Logf("m[2] ok: %t",ok2)		// %t bool类型占位符
+
+	t.Log("----------")
+	v3 := m[3]
+	t.Logf("m[2] value: %d",v3)
 }

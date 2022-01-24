@@ -73,40 +73,31 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 	}
 
 	// 庄家下庄
-	self.l.Lock()
-	{
-		i := ((self.current + len(self.seq)) - 1) % len(self.seq)
-		self.getPInfoByIndex(i).Score -= len(self.seq) * base
-	}
-	self.l.Unlock()
+	self.blind()
 
+	// 开始叫牌
 	var showWinner bool
 	for {
-		// TODO[Dokiy] 2022/1/21:  发送广播消息给所有玩家
-		// ...
+		// 发送台面消息给所有玩家
+		self.BroadcastSession(ctx)
 
-		// TODO[Dokiy] 2022/1/23: 定义广播消息结构体 to be continued
-		msg := "msg"
-		//data := self.Caller.WaitAction(ctx, playerId, []byte(msg))
-		data := self.WaitAction(ctx, []byte(msg))
-		//self.Caller()
+		// 等待当前玩家操作
+		data := self.waitAction(ctx)
+
+		// 处理玩家操作
 		action, err := toAction(data)
 		if err != nil {
 			logrus.Errorf("解析玩家操作消息错误：%s", err.Error())
 			continue
 		}
+		err = action.do(ctx, self)
+		if err != nil {
+			go self.Caller(ctx, self.currentPlayer(), GenInfoMsg(err.Error()))
+			continue
+		}
 
-		{
-			err := action.do(self)
-			if err != nil {
-				// TODO[Dokiy] 2022/1/23: 添加错误信息，重新让该用户操作
-				msg = err.Error()
-				continue
-			}
-
-			if action.isContinued() {
-				continue
-			}
+		if action.isContinued() {
+			continue
 		}
 
 		// 如果没有下一个玩家，结束游戏
@@ -120,12 +111,33 @@ func (self *RoundSession) Play(ctx context.Context, poker *Win3Cards, seq []int)
 		}
 	}
 
-	// TODO[Dokiy] 2022/1/23: 处理开牌, 给所有玩家发送底牌
-	{
-		print(showWinner)
-	}
+	// 摊牌
+	self.showdown(ctx, showWinner)
 
-	return self.CurrentPlayer(), nil
+	return self.currentPlayer(), nil
+}
+
+func (self *RoundSession) BroadcastSession(ctx context.Context) {
+	msg := GenRoundSessionMsg(self)
+	for _, id := range self.Players {
+		go self.Caller(ctx, id, msg)
+	}
+}
+
+// =========================================================
+
+func (self *RoundSession) blind() {
+	self.l.Lock()
+	defer self.l.Unlock()
+
+	l := len(self.seq)
+	i := ((self.current + l) - 1) % l
+	self.getPInfoByIndex(i).Score += l * base
+}
+
+func (self *RoundSession) waitAction(ctx context.Context) []byte {
+	self.Caller(ctx, self.currentPlayer(), GenInfoMsg("It's your turn！"))
+	return self.Receiver(ctx, self.currentPlayer())
 }
 
 func (self *RoundSession) next() (ok bool) {
@@ -140,18 +152,30 @@ func (self *RoundSession) next() (ok bool) {
 	return false
 }
 
-// =========================================================
+func (self *RoundSession) showdown(ctx context.Context, showWinner bool) {
+	for id, playerIds := range self.ViewLog {
+		handCards := make(map[int]HandCard, len(playerIds))
+		for _, playerId := range playerIds {
+			handCards[playerId] = self.handCards[playerId]
+		}
 
-func (self *RoundSession) WaitAction(ctx context.Context, msg []byte) []byte {
-	self.Caller(ctx, self.CurrentPlayer(), msg)
-	return self.Receiver(ctx, self.CurrentPlayer())
+		// 看自己的牌
+		handCards[id] = self.handCards[id]
+		// 看赢家的牌
+		if showWinner {
+			handCards[self.current] = self.handCards[self.current]
+		}
+		self.Caller(ctx, id, GenViewLogMsg(handCards))
+	}
 }
 
-func (self *RoundSession) CurrentPlayer() int {
+// =========================================================
+
+func (self *RoundSession) currentPlayer() int {
 	return self.getPlayerByIndex(self.current)
 }
 
-func (self *RoundSession) CurrentPInfo() *PlayInfo {
+func (self *RoundSession) currentPInfo() *PlayInfo {
 	return self.getPInfoByIndex(self.current)
 }
 
