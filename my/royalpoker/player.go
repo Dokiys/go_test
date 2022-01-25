@@ -6,18 +6,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Player struct {
+type Player interface {
+	GetId() int
+	Send(ctx context.Context, data []byte)
+	Receive(ctx context.Context) []byte
+	Close(ctx context.Context)
+}
+type PlayerWs struct {
 	Id int
 	// The websocket connection.
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send   chan []byte
-	recive chan []byte
+	send    chan []byte
+	receive chan []byte
+
+	start chan struct{}
 }
 
-func NewPlayer(conn *websocket.Conn) *Player {
-	player := &Player{
+func NewPlayerWs(conn *websocket.Conn) *PlayerWs {
+	player := &PlayerWs{
 		Id:   0,
 		conn: conn,
 		send: make(chan []byte),
@@ -26,28 +34,48 @@ func NewPlayer(conn *websocket.Conn) *Player {
 		for {
 			select {
 			case msg := <-player.send:
-				err := player.conn.WriteJSON(msg)
+				err := conn.WriteMessage(websocket.TextMessage, msg)
 				logrus.Errorf("推送玩家消息[%s]错误：%s", msg, err.Error())
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-player.start:
+				player.start <- struct{}{}
+				_, msg, err := player.conn.ReadMessage()
+				logrus.Errorf("主动接收玩家消息错误：%s", err.Error())
+				player.receive <- msg
+			default:
+				_, _, err := player.conn.ReadMessage()
+				logrus.Errorf("被动接收玩家消息错误：%s", err.Error())
 			}
 		}
 	}()
 	return player
 }
 
-func (self *Player) Send(ctx context.Context, data []byte) {
+func (self *PlayerWs) GetId() int {
+	return self.Id
+}
+
+func (self *PlayerWs) Send(ctx context.Context, data []byte) {
 	self.send <- data
 }
 
-// TODO[Dokiy] 2022/1/24: 阻塞读取当前玩家的消息
-func (self *Player) Receive(ctx context.Context) []byte {
-	ch := make(chan []byte)
-	go func() {
-		select {
-		case self.recive <- <- ch:
-		}
-
-		close(ch)
+func (self *PlayerWs) Receive(ctx context.Context) []byte {
+	self.start <- struct{}{}
+	defer func() {
+		<-self.start
 	}()
+	return <-self.receive
+}
 
-	return <-self.recive
+func (self *PlayerWs) Close(ctx context.Context) {
+	err := self.conn.Close()
+	if err != nil {
+		logrus.Errorf("关闭链接失败：%s", err.Error())
+	}
 }
