@@ -2,6 +2,7 @@ package win3cards
 
 import (
 	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -10,19 +11,18 @@ import (
 const base = 1
 
 type RoundSession struct {
-	Players   []int             // 玩家Id
-	handCards map[int]HandCard  // 玩家底牌 key playerId
+	Players   []int             // 玩家Id，顺序未玩家开始顺序
+	handCards map[int]HandCard  // 玩家底牌 key index
 	MaxBet    int               // 当前轮注码(开牌值计算)
-	PInfo     map[int]*PlayInfo // 本局玩家信息 key playerId
+	PInfo     map[int]*PlayInfo // 本局玩家信息,因为在w3c_session中需要结算，所以key使用playerId
 	PLog      []string          // 回合操作流水
 
-	ViewLog map[int][]int // 看牌记录
+	ViewLog map[int][]int // 看牌记录 key index
 
-	Caller     func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
-	Receiver   func(ctx context.Context, id int) ([]byte, error)   // 从Player接收消息
-	seq        []int                                               // 本局playerId顺序
-	current    int                                                 // 当前步骤玩家index
-	l          sync.Mutex
+	Caller   func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
+	Receiver func(ctx context.Context, id int) ([]byte, error)   // 从Player接收消息
+	current  int                                                 // 当前步骤玩家index
+	l        sync.Mutex
 }
 
 type PlayInfo struct {
@@ -42,33 +42,33 @@ func NewRoundSession(players []int,
 	}
 }
 
-func (self *RoundSession) init(poker *Win3Cards, seq []int) error {
-	if len(seq) <= 1 {
+func (self *RoundSession) init(poker *Win3Cards, players []int) error {
+	if len(players) <= 1 {
 		return errors.New("人数不够开局！")
 	}
-	l := len(seq)
+	l := len(players)
 	self.handCards = make(map[int]HandCard, l)
 	self.PInfo = make(map[int]*PlayInfo, l)
-	self.PLog = make([]string, l*4)
+	self.PLog = make([]string, 0)
+	self.ViewLog = make(map[int][]int, l)
 	self.current = 0
 	self.MaxBet = base * 2
 
-	self.seq = seq
-	for _, id := range seq {
+	for i, id := range players {
 		handCard, err := poker.Deal()
 		if err != nil {
 			return errors.Wrapf(err, "发牌错误：")
 		}
-		self.handCards[id] = handCard
+		self.handCards[i] = handCard
 		self.PInfo[id] = &PlayInfo{}
 	}
 
 	return nil
 }
 
-func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, seq []int) (winner int, err error) {
+func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, players []int) (winner int, err error) {
 	// 初始化开局
-	if err := self.init(poker, seq); err != nil {
+	if err := self.init(poker, players); err != nil {
 		return 0, errors.Wrapf(err, "初始化开局错误：")
 	}
 
@@ -111,6 +111,8 @@ func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, seq []int) 
 		}
 	}
 
+	// 发送台面消息给所有玩家
+	self.BroadcastSession(ctx)
 	// 摊牌
 	self.showdown(ctx, showWinner)
 
@@ -124,19 +126,26 @@ func (self *RoundSession) BroadcastSession(ctx context.Context) {
 	}
 }
 
+func (self *RoundSession) BroadcastInfo(ctx context.Context, msg string) {
+	data := GenInfoMsg(msg)
+	for _, id := range self.Players {
+		go self.Caller(ctx, id, data)
+	}
+}
+
 // =========================================================
 
 func (self *RoundSession) blind() {
 	self.l.Lock()
 	defer self.l.Unlock()
 
-	l := len(self.seq)
-	i := ((self.current + l) - 1) % l
-	self.getPInfoByIndex(i).Score += l * base
+	l := len(self.Players)
+	//i := ((self.current + l) - 1) % l
+	self.getPInfoByIndex(self.current).Score += l * base
 }
 
 func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
-	go self.Caller(ctx, self.currentPlayer(), GenInfoMsg( "It's your turn！"))
+	go self.BroadcastInfo(ctx, fmt.Sprintf("轮到[%d]号玩家操作", self.current+1))
 	data, err := self.Receiver(ctx, self.currentPlayer())
 	if err != nil {
 		return nil, errors.Wrapf(err, "接收操作失败！")
@@ -145,8 +154,8 @@ func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
 }
 
 func (self *RoundSession) next() (ok bool) {
-	for i := 1; i < len(self.seq); i++ {
-		index := (self.current + i) % len(self.seq)
+	for i := 1; i < len(self.Players); i++ {
+		index := (self.current + i) % len(self.Players)
 		if info := self.getPInfoByIndex(index); !info.IsOut {
 			self.current = index
 			return true
@@ -157,26 +166,26 @@ func (self *RoundSession) next() (ok bool) {
 }
 
 func (self *RoundSession) showdown(ctx context.Context, showWinner bool) {
-	for id, playerIds := range self.ViewLog {
-		handCards := make(map[int]HandCard, len(playerIds))
-		for _, playerId := range playerIds {
-			handCards[playerId] = self.handCards[playerId]
+	for index, playerIndexs := range self.ViewLog {
+		handCards := make(map[int]HandCard, len(playerIndexs)+2)
+		for _, playerIndex := range playerIndexs {
+			handCards[playerIndex] = self.handCards[playerIndex]
 		}
 
 		// 看自己的牌
-		handCards[id] = self.handCards[id]
+		handCards[index] = self.handCards[index]
 		// 看赢家的牌
 		if showWinner {
 			handCards[self.current] = self.handCards[self.current]
 		}
-		self.Caller(ctx, id, GenViewLogMsg(handCards))
+		go self.Caller(ctx, self.Players[index], GenViewLogMsg(handCards))
 	}
 }
 
 // =========================================================
 
 func (self *RoundSession) currentPlayer() int {
-	return self.getPlayerByIndex(self.current)
+	return self.Players[self.current]
 }
 
 func (self *RoundSession) currentPInfo() *PlayInfo {
@@ -184,13 +193,5 @@ func (self *RoundSession) currentPInfo() *PlayInfo {
 }
 
 func (self *RoundSession) getPInfoByIndex(i int) *PlayInfo {
-	return self.PInfo[self.seq[i]]
-}
-
-func (self *RoundSession) getPInfoById(id int) *PlayInfo {
-	return self.PInfo[id]
-}
-
-func (self *RoundSession) getPlayerByIndex(i int) int {
-	return self.seq[i]
+	return self.PInfo[self.Players[i]]
 }

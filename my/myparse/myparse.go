@@ -29,6 +29,12 @@ func main() {
 		return
 	}
 
+	//var msg string
+	//reader := bufio.NewReader(os.Stdin)
+	//{
+	//	data, _, _ := reader.ReadLine()
+	//	msg = string(data)
+	//}
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		*value = scanner.Text()

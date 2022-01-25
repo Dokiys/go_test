@@ -9,9 +9,9 @@ import (
 
 type ActionType string
 type Action struct {
-	ActionType ActionType
-	Bet        int
-	ShowId    int
+	ActionType ActionType `json:"action_type"`
+	Bet        int        `json:"bet"`
+	ShowIndex  int        `json:"show_index"` // 被开牌玩家的顺序 1开始计算
 }
 
 const (
@@ -36,9 +36,9 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 		// 下注
 		{
-			var base = 1
+			var base = 2
 			if pInfo.IsViewed {
-				base = 2
+				base = 1
 			}
 			if base*self.Bet < rs.MaxBet {
 				return errors.New("下注必须大于当前最大注码！")
@@ -53,16 +53,20 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 	case ACTION_VIEW:
 		rs.currentPInfo().IsViewed = true
-		handCard := rs.handCards[rs.currentPlayer()]
+		handCard := rs.handCards[rs.current]
 		rs.Caller(ctx, rs.currentPlayer(), GenActionViewMsg(handCard))
 
 	case ACTION_SHOW:
 		rs.l.Lock()
 		defer rs.l.Unlock()
 
-		pInfo1, pInfo2 := rs.currentPInfo(), rs.getPInfoById(self.ShowId)
+		if rs.current == self.ShowIndex {
+			return errors.New("不能开自己的牌！")
+		}
+
+		pInfo1, pInfo2 := rs.currentPInfo(), rs.getPInfoByIndex(self.ShowIndex)
 		if pInfo2 == nil {
-			return errors.Errorf("错误：未找到该玩家【%d】！", self.ShowId)
+			return errors.Errorf("错误：未找到该玩家！")
 		}
 		if pInfo1.IsOut || pInfo2.IsOut {
 			return errors.New("已经出局的玩家不能(被)开牌！")
@@ -70,9 +74,9 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 		// 下注
 		{
-			var base = 1
+			var base = 2
 			if pInfo1.IsViewed {
-				base = 2
+				base = 1
 			}
 			if base*self.Bet < rs.MaxBet {
 				return errors.New("下注必须大于当前最大注码！")
@@ -83,17 +87,21 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 		// 开牌, 并记录给开牌输家看牌
 		{
-			h1, h2 := rs.handCards[rs.current], rs.handCards[self.ShowId]
+			h1, h2 := rs.handCards[rs.current], rs.handCards[self.ShowIndex]
 			if h2.v == "" {
-				return errors.Errorf("错误：未找到该玩家底牌【%d】！", self.ShowId)
+				return errors.Errorf("错误：未找到该玩家底牌！")
 			}
 
 			// 开牌者可以看到被开者到牌
-			rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowId)
-			if !Compare(h1, h2) {
+			rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowIndex)
+			if Compare(h1, h2) {
 				// 被开牌者如果输了也可以看到开牌者的牌
 				pInfo2.IsOut = true
-				rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.current)
+				rs.ViewLog[self.ShowIndex] = append(rs.ViewLog[self.ShowIndex], rs.current)
+			} else {
+				pInfo1.IsOut = true
+				// 如果当前玩家输了，设置下一个玩家
+				rs.next()
 			}
 		}
 	}
@@ -105,7 +113,7 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 // ==========================================
 
 func (self *Action) genPLog(rs *RoundSession) (plog string) {
-	plog = fmt.Sprintf("[%d]号玩家", rs.current)
+	plog = fmt.Sprintf("[%d]号玩家", rs.current+1)
 	switch self.ActionType {
 	case ACTION_IN:
 		plog = fmt.Sprintf("%s【跟注】：【%d】", plog, self.Bet)
@@ -118,9 +126,9 @@ func (self *Action) genPLog(rs *RoundSession) (plog string) {
 		if rs.currentPInfo().IsOut {
 			outId = rs.currentPlayer()
 		} else {
-			outId = self.ShowId
+			outId = self.ShowIndex
 		}
-		plog = fmt.Sprintf("%s【开牌】[%d]号玩家：[%d]号玩家出局", plog, self.ShowId, outId)
+		plog = fmt.Sprintf("%s【开牌】[%d]号玩家：[%d]号玩家出局", plog, self.ShowIndex+1, outId+1)
 	}
 
 	return plog
@@ -138,7 +146,6 @@ func (self Action) isContinued() bool {
 func (self Action) isShow() bool {
 	return self.ActionType == ACTION_SHOW
 }
-
 
 func (self Action) isW3CReady() bool {
 	return self.ActionType == W3C_ACTION_READY

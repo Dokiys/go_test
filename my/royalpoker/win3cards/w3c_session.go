@@ -15,7 +15,6 @@ type W3cSession struct {
 	count        int          // 玩家人数
 	Round        int          // 当前回合数
 	ScoreMap     map[int]int  // 玩家分数 key playerId
-	Seq          []int        // 玩家顺序
 	ReadyInfo    map[int]bool // 准备信息， 全部准备表示已经开局
 	RoundSession *RoundSession
 
@@ -34,23 +33,26 @@ func (self *W3cSession) init(players []int) error {
 	self.Players = players
 	self.count = length
 	self.ReadyInfo = make(map[int]bool, length)
-	self.Seq = make([]int, length)
+	self.ScoreMap = make(map[int]int, length)
+	self.Round = 1
 	self.Poker = NewPoker()
 
 	// 开局
-	i := 0
-	for id, _ := range self.Players {
-		self.Seq[i] = id
+	for _, id := range self.Players {
 		self.ScoreMap[id] = 0
 		self.ReadyInfo[id] = true
-
-		i++
 	}
 	self.RoundSession = NewRoundSession(players, self.Caller, self.Receiver)
 	return nil
 }
 
 func (self *W3cSession) Run(ctx context.Context, players []int) error {
+	// TODO[Dokiy] 2022/1/25: 处理panic
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		logrus.Errorf("系统错误：", err)
+	//	}
+	//}()
 	err := self.init(players)
 	if err != nil {
 		return errors.Wrapf(err, "初始化开局信息失败：")
@@ -66,7 +68,7 @@ func (self *W3cSession) Run(ctx context.Context, players []int) error {
 
 		// 开始
 		winner, err := self.Play(ctx, r)
-		if err!= nil {
+		if err != nil {
 			return errors.Wrapf(err, "开局失败：")
 		}
 
@@ -84,6 +86,9 @@ func (self *W3cSession) Run(ctx context.Context, players []int) error {
 func (self *W3cSession) WaitReady(ctx context.Context) {
 	var wg sync.WaitGroup
 	for _, playerId := range self.Players {
+		if self.ReadyInfo[playerId] {
+			continue
+		}
 		wg.Add(1)
 		go func(id int) {
 			for {
@@ -114,13 +119,16 @@ func (self *W3cSession) WaitReady(ctx context.Context) {
 }
 
 func (self *W3cSession) Play(ctx context.Context, round int) (int, error) {
-	l := len(self.Seq)
-	seq := make([]int, l)
-	for i, id := range self.Seq {
-		seq[(round+i)%l] = id
+	l := len(self.Players)
+	players := make([]int, l)
+	for i, id := range self.Players {
+		players[(round+i)%l] = id
 	}
+	// 发送位序
+	self.BroadcastSeq(ctx, players)
+
 	self.Poker.CutTheDeck()
-	winner, err := self.RoundSession.Run(ctx, self.Poker, seq)
+	winner, err := self.RoundSession.Run(ctx, self.Poker, players)
 	if err != nil {
 		return 0, err
 	}
@@ -135,6 +143,13 @@ func (self *W3cSession) InfoPlayer(ctx context.Context, id int, msg string) {
 func (self *W3cSession) BroadcastMsg(ctx context.Context, msg string) {
 	data := GenInfoMsg(msg)
 	for _, id := range self.Players {
+		go self.Caller(ctx, id, data)
+	}
+}
+
+func (self *W3cSession) BroadcastSeq(ctx context.Context, players []int) {
+	data := GenSeqMsg(players)
+	for _, id := range players {
 		go self.Caller(ctx, id, data)
 	}
 }

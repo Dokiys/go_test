@@ -16,6 +16,7 @@ func RandAlphabetStr(n int) string {
 }
 
 func RandNum(n int) int {
+	m := 10 << n
 	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(n)
+	return rand.Intn(m)
 }
