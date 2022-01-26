@@ -1,51 +1,56 @@
 package main
 
 import (
-	"context"
-	"github.com/sirupsen/logrus"
-	"os"
+	"fmt"
+	"github.com/dokiy/royalpoker/common"
+	"github.com/gin-gonic/gin"
 )
 
+var (
+	userMap    map[int]*User
+	userHubMap map[int]int
+)
+
+type User struct {
+	Id       int
+	Name     string
+	Password string
+}
+
+func init() {
+	userMap = make(map[int]*User, 10)
+	userMap[1] = &User{
+		Id:       1,
+		Name:     "zhangsan",
+		Password: "123",
+	}
+
+	userHubMap = make(map[int]int)
+}
+
+func TokenHandle(c *gin.Context) {
+	if c.Request.URL.Path != "/login" {
+		token := c.Request.Header.Get("Authorization")
+		decode, err := common.Decode(token)
+		if err != nil {
+			c.JSON(401, fmt.Sprintf("授权信息错误：%s", err.Error()))
+		}
+		c.Set("username", decode.Name)
+		c.Set("isAdmin", decode.IsAdmin)
+	}
+	c.Next()
+}
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
+	r, handler := gin.Default(), NewHandler()
+	r.Use(TokenHandle)
+	r.POST("/login", handler.login)
+	r.POST("/hub/create", handler.createHub)
+	r.POST("/hub/join", handler.joinHub)
+	r.POST("/hub/out", handler.outHub)
+	r.POST("/hub/start", handler.startHub)
 
-	file, err := os.OpenFile("/Users/admin/dokiy/go_test/my/royalpoker/log", os.O_RDWR|os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
-	}
-	logrus.SetOutput(file)
-
-	ctx := context.Background()
-	hub := NewHub()
-
-	// 注册
-	player := NewLocalPlayer()
-	player2 := NewLocalPlayer()
-	//a := player.Receive(ctx)
-	//t.Log(a)
-
-	err = hub.Register(player)
-	if err != nil {
-		panic(err)
-	}
-
-	err = hub.Register(player2)
-	if err != nil {
-		panic(err)
-	}
-
-	err = hub.Start(ctx)
+	err := r.Run(":8080")
 	if err != nil {
 		panic(err)
 	}
 }
-
-//	ACTION_IN   = "ACTION_IN"
-//	ACTION_OUT  = "ACTION_OUT"
-//	ACTION_VIEW = "ACTION_VIEW"
-//	ACTION_SHOW = "ACTION_SHOW"
-
-// 准备： {"action_type":"W3C_ACTION_READY","bet": 0, "show_index":0}
-// 跟： {"action_type":"ACTION_IN","bet": 1, "show_index":0}
-// 看牌： {"action_type":"ACTION_VIEW","bet": 0, "show_index":0}
-// 开： {"action_type":"ACTION_SHOW","bet": 2, "show_index":0}

@@ -2,19 +2,20 @@ package main
 
 import (
 	"context"
-	"github.com/dokiy/royalpoker/common"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
 
 type Player interface {
 	GetId() int
+	GetName() string
 	Send(ctx context.Context, data []byte)
 	Receive(ctx context.Context) []byte
 	Close(ctx context.Context)
 }
 type PlayerWs struct {
-	Id int
+	Id   int
+	Name string
 	// The websocket connection.
 	conn *websocket.Conn
 
@@ -26,9 +27,10 @@ type PlayerWs struct {
 	start chan struct{}
 }
 
-func NewPlayerWs(conn *websocket.Conn) *PlayerWs {
+func NewPlayerWs(conn *websocket.Conn, id int, name string) *PlayerWs {
 	player := &PlayerWs{
-		Id:      common.RandNum(6),
+		Id:      id,
+		Name:    name,
 		conn:    conn,
 		send:    make(chan []byte),
 		receive: make(chan []byte),
@@ -70,12 +72,6 @@ func NewPlayerWs(conn *websocket.Conn) *PlayerWs {
 				close(player.receive)
 				player.conn.Close()
 				return
-			default:
-				// TODO[Dokiy] 2022/1/25: 如果没有接收msg会怎样？
-				_, _, err := player.conn.ReadMessage()
-				if err != nil {
-					logrus.Errorf("被动接收玩家消息错误：%s", err.Error())
-				}
 			}
 		}
 	}()
@@ -84,6 +80,10 @@ func NewPlayerWs(conn *websocket.Conn) *PlayerWs {
 
 func (self *PlayerWs) GetId() int {
 	return self.Id
+}
+
+func (self *PlayerWs) GetName() string {
+	return self.Name
 }
 
 func (self *PlayerWs) Send(ctx context.Context, data []byte) {

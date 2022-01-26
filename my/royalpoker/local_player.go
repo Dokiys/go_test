@@ -13,7 +13,8 @@ import (
 var l sync.Mutex
 
 type LocalPlayer struct {
-	Id int
+	Id   int
+	Name string
 
 	// Buffered channel of outbound messages.
 	send    chan []byte
@@ -22,9 +23,10 @@ type LocalPlayer struct {
 	start   chan struct{}
 }
 
-func NewLocalPlayer() *LocalPlayer {
+func NewLocalPlayer(name string) *LocalPlayer {
 	player := &LocalPlayer{
 		Id:      common.RandNum(6),
+		Name:    name,
 		send:    make(chan []byte),
 		receive: make(chan []byte),
 		start:   make(chan struct{}),
@@ -73,6 +75,11 @@ func NewLocalPlayer() *LocalPlayer {
 func (self *LocalPlayer) GetId() int {
 	return self.Id
 }
+
+func (self *LocalPlayer) GetName() string {
+	return self.Name
+}
+
 
 func (self *LocalPlayer) Send(ctx context.Context, data []byte) {
 	self.send <- data

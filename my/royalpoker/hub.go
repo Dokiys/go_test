@@ -14,25 +14,45 @@ type PlaySession interface {
 }
 type Hub struct {
 	Id      int
+	Owner   int
 	Players map[int]Player
 
 	isStarted   bool
 	playSession PlaySession
 }
 
-func NewHub() *Hub {
+var hubMap map[int]*Hub
+
+func init() {
+	hubMap = make(map[int]*Hub)
+}
+func NewHub(owner int) *Hub {
 	id := common.RandNum(6)
 	hub := &Hub{
 		Id:      id,
+		Owner:   owner,
 		Players: make(map[int]Player),
 	}
 	hub.playSession = win3cards.NewW3CSession(hub.callPlayer, hub.receivePlayer)
+
+	hubMap[id] = hub
+	go func() {
+		select {
+		case <-time.After(2 * time.Hour):
+			delete(hubMap, id)
+		}
+	}()
 	return hub
 }
 
 func (self *Hub) Register(player Player) error {
-	if self.isStarted {
+	p, ok := self.Players[player.GetId()]
+	if self.isStarted && !ok {
 		return errors.New("游戏已开始！")
+	}
+	// 如果之前对用户连接存在，则需要关闭原来对连接
+	if ok {
+		p.Close(context.TODO())
 	}
 	self.Players[player.GetId()] = player
 	return nil
@@ -80,6 +100,18 @@ func (self *Hub) Start(ctx context.Context) error {
 		go player.Close(ctx)
 	}
 	return nil
+}
+
+func GetHub(id int) (*Hub, bool) {
+	hub, ok := hubMap[id]
+	return hub, ok
+}
+
+func (self *Hub) BroadcastHubSession(ctx context.Context, msg string) {
+	data := GenHubSessionMsg(self, msg)
+	for id, _ := range self.Players {
+		go self.callPlayer(ctx, id, data)
+	}
 }
 
 func (self *Hub) callPlayer(ctx context.Context, id int, msg []byte) error {

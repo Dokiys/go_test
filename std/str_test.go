@@ -20,6 +20,17 @@ func TestStrCompare(t *testing.T) {
 	t.Log(str1 > str2)
 }
 
+// TestStrToByte 测试保存字符串的interface能不能直接强转成byte
+func TestStrToByte(t *testing.T) {
+	var str = "123"
+	var i interface{}
+
+	i = str
+	var b []byte
+	b = []byte(i.(string))
+	t.Log(b)
+}
+
 // TestStrReplace 字符串替换
 func TestStrReplace(t *testing.T) {
 	s := "dfjalskfdls"
