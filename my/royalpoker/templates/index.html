@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+<template id="app">
+    <div id="login" v-if="showDiv == 'login'">
+        <form>
+            <p>用户名:<input id="username" type="text">
+            <p>密码：<input id="password" type="password">
+            <p>
+                <button type="submit" id="loginButton" v-on:click='loginButton()'>登录</button>
+        </form>
+    </div>
+    <div v-else-if="showDiv == 'index'">
+        <form>
+            <div>
+                <p>你好： ${user.name}
+                    <button id="logoutButton" style="margin-left: 60px" v-on:click='logoutButton()'>退出</button>
+                </p>
+                <button id="createButton" v-on:click='createButton()'>创建房间</button>
+            </div>
+            <div>
+                <p><input id="joinInput" type="number" placeholder="请输入房间号">
+                    <button id="joinButton" v-on:click='joinButton($("#joinInput").val())'>加入房间</button>
+            </div>
+            <div v-if="user.is_admin">
+                <p><input id="closeInput" type="number" placeholder="请输入房间号">
+                    <button id="closeButton" v-on:click='closeButton()'>关闭房间</button>
+            </div>
+        </form>
+    </div>
+
+    <div v-else-if="showDiv == 'hub'">
+        <div>
+            <p>房间号：${hub_id}
+                <button id="outButton" style="margin-left: 30px" v-on:click='outButton()'>退出房间</button>
+            </p>
+            <!--            <button id="outButton" v-on:click='outButton()'>当前注码</button>-->
+            <!--            <button id="outButton" v-on:click='outButton()'>开始游戏</button>-->
+            <!--            <button id="outButton" v-on:click='outButton()'>准备</button>-->
+            <!--            <button id="outButton" v-on:click='outButton()'>跟</button>-->
+            <!--            <button id="outButton" v-on:click='outButton()'>看牌</button>-->
+            <!--            <button id="outButton" v-on:click='outButton()'>开</button>-->
+
+            <!--            <button id="outButton" v-on:click='outButton()'>玩家列表（准备，积分，名称，开牌等信息）</button>-->
+        </div>
+        <div>
+            结算弹框信息
+        </div>
+        <td valign="top" width="50%">
+            <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
+        </td>
+    </div>
+</template>
+</body>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+<!--<script src="https://localhost:8080/static/app.js"></script>-->
+<script>
+    var token = localStorage.getItem('token');
+    var ws;
+    var app = new Vue({
+        el: "#app",
+        delimiters: ['${', '}'],
+        data() {
+            return {
+                showDiv: 'login',
+                user: {},
+                hub_id: 0,
+            }
+        },
+        created: () => {
+            if (token !== null) {
+                $.ajax({
+                    url: 'http://localhost:8080/login',
+                    type: 'POST',
+                    headers: {'Authorization': token},
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    async: true,
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            alert(res.msg)
+                        }
+                        app.user.id = res.data.id
+                        app.user.name = res.data.username
+                        app.user.is_admin = res.data.is_admin
+                        app.hub_id = res.data.hub_id
+                        if (app.hub_id !== 0) {
+                            app.showDiv = 'hub'
+                        } else {
+                            app.showDiv = 'index'
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    // 登录
+    loginButton = (event) => {
+        let username = $("#username").val();
+        let password = $("#password").val();
+        let data = {username: username, password: password}
+        $.ajax({
+            url: 'http://localhost:8080/login',
+            type: 'POST',
+            data: JSON.stringify(data),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function (res) {
+                if (res.code !== 0) {
+                    alert(res.msg)
+                    return
+                }
+
+                app.user.id = res.data.id
+                app.user.name = res.data.username
+                app.user.is_admin = res.data.is_admin
+                app.hub_id = res.data.hub_id
+
+                localStorage.setItem('token', res.data.token);
+                app.showDiv = 'index'
+            }
+        });
+    }
+    // 退出
+    logoutButton = (event) => {
+        localStorage.removeItem('token')
+        app.user = {}
+        app.showDiv = 'login'
+    }
+    // 创建房间
+    createButton = (event) => {
+        $.ajax({
+            url: 'http://localhost:8080/hub/create',
+            type: 'POST',
+            headers: {'Authorization': token},
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function (res) {
+                if (res.code !== 0) {
+                    alert(res.msg)
+                    return
+                }
+                app.hub_id = res.data.id
+                app.showDiv = 'hub'
+            }
+        });
+    }
+    // 加入房间
+    joinButton = (id) => {
+        if (ws) {
+            return
+        }
+        wsurl = "ws://localhost:8080/hub/join?hubid=" + id
+        ws = new WebSocket(wsurl,[token]);
+        //连接打开时触发
+        ws.onopen = function (evt) {
+            console.log("Connection open ...");
+            // ws.send("Hello WebSockets!");
+        };
+        //接收到消息时触发
+        ws.onmessage = function (evt) {
+            console.log("Received Message: " + evt.data);
+        };
+        //连接关闭时触发
+        ws.onclose = function (evt) {
+            // todo[dokiy]: to be continued
+            alert(evt.reason)
+            console.log("Connection closed.");
+        };
+
+        // $.ajax({
+        //     url: 'http://localhost:8080/hub/join',
+        //     type: 'POST',
+        //     headers: {'Authorization': token},
+        //     data: JSON.stringify(data),
+        //     contentType: 'application/json; charset=utf-8',
+        //     dataType: 'json',
+        //     async: false,
+        //     success: function (res) {
+        //         if (res.code !== 0) {
+        //             alert(res.msg)
+        //             return
+        //         }
+        //         app.hub_id = res.data.id
+        //         app.showDiv = 'hub'
+        //     }
+        // });
+    }
+    // 退出房间
+    outButton = (event) => {
+        $.ajax({
+            url: 'http://localhost:8080/hub/out',
+            type: 'POST',
+            headers: {'Authorization': token},
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function (res) {
+                if (res.code !== 0) {
+                    alert(res.msg)
+                    return
+                }
+
+                app.hub_id = 0
+                app.showDiv = 'index'
+            }
+        });
+    }
+</script>
+</html>

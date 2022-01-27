@@ -10,7 +10,7 @@ type Player interface {
 	GetId() int
 	GetName() string
 	Send(ctx context.Context, data []byte)
-	Receive(ctx context.Context) []byte
+	Receive(ctx context.Context) ([]byte,error)
 	Close(ctx context.Context)
 }
 type PlayerWs struct {
@@ -90,12 +90,18 @@ func (self *PlayerWs) Send(ctx context.Context, data []byte) {
 	self.send <- data
 }
 
-func (self *PlayerWs) Receive(ctx context.Context) []byte {
+func (self *PlayerWs) Receive(ctx context.Context) ([]byte, error) {
 	self.start <- struct{}{}
 	defer func() {
 		<-self.start
 	}()
-	return <-self.receive
+
+	select {
+	case data := <-self.receive:
+		return data, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (self *PlayerWs) Close(ctx context.Context) {

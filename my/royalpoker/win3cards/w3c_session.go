@@ -47,12 +47,6 @@ func (self *W3cSession) init(players []int) error {
 }
 
 func (self *W3cSession) Run(ctx context.Context, players []int) error {
-	// TODO[Dokiy] 2022/1/25: 处理panic
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		logrus.Errorf("系统错误：", err)
-	//	}
-	//}()
 	err := self.init(players)
 	if err != nil {
 		return errors.Wrapf(err, "初始化开局信息失败：")
@@ -92,6 +86,7 @@ func (self *W3cSession) WaitReady(ctx context.Context) {
 		wg.Add(1)
 		go func(id int) {
 			for {
+				// TODO[Dokiy] 2022/1/27:
 				data, err := self.Receiver(ctx, id)
 				if err != nil {
 					logrus.Errorf("等待玩家准备时，接收操作错误：", err.Error())

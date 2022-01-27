@@ -80,17 +80,16 @@ func (self *LocalPlayer) GetName() string {
 	return self.Name
 }
 
-
 func (self *LocalPlayer) Send(ctx context.Context, data []byte) {
 	self.send <- data
 }
 
-func (self *LocalPlayer) Receive(ctx context.Context) []byte {
+func (self *LocalPlayer) Receive(ctx context.Context) ([]byte, error) {
 	self.start <- struct{}{}
 	defer func() {
 		<-self.start
 	}()
-	return <-self.receive
+	return <-self.receive, nil
 }
 
 func (self *LocalPlayer) Close(ctx context.Context) {

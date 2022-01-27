@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type handler struct{}
@@ -17,6 +19,7 @@ func NewHandler() *handler {
 // ====================================================
 type LoginRequest struct {
 	Id       int    `json:"id"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 type HubRequest struct {
@@ -28,7 +31,11 @@ type Reply struct {
 	Data interface{} `json:"data"`
 }
 type LoginReply struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+	IsAdmin  bool   `json:"is_admin"`
+	HubId    int    `json:"hub_id"`
 }
 type HubReply struct {
 	Id int `json:"id"`
@@ -42,38 +49,55 @@ func replyHandler(c *gin.Context, f func() (interface{}, error)) {
 		reply.Code = 1001
 		reply.Msg = err.Error()
 	}
+	logrus.Info(userHubMap)
 	c.JSON(200, reply)
 }
 func (self *handler) login(c *gin.Context) {
 	replyHandler(c, func() (interface{}, error) {
+		token := c.Request.Header.Get("Authorization")
+		decode, err := common.Decode(token)
+		if err == nil {
+			return LoginReply{
+				Token:    token,
+				Id:       decode.Uid,
+				Username: decode.Name,
+				IsAdmin:  decode.IsAdmin,
+				HubId:    userHubMap[decode.Uid],
+			}, nil
+		}
+
 		var login LoginRequest
-		err := c.BindJSON(&login)
+		err = c.BindJSON(&login)
 		if err != nil {
 			return nil, errors.Wrapf(err, "传入参数错误！")
 		}
 
-		user, ok := userMap[login.Id]
+		uid := userNameMap[login.Username]
+		user, ok := userMap[uid]
 		if !ok {
-			return nil, errors.Wrapf(err, "玩家不存在！请联系张老板开账号！")
+			return nil, errors.New("账号不存在！")
 		}
 
 		if user.Password != login.Password {
 			return nil, errors.New("密码错误！")
 		}
 
-		var isAdmin bool
-		if login.Id == 1 {
-			isAdmin = true
-		}
-		token, err := common.Encode(&common.Claims{
+		token, err = common.Encode(&common.Claims{
 			Uid:     user.Id,
 			Name:    user.Name,
-			IsAdmin: isAdmin,
+			IsAdmin: user.IsAdmin,
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "生成token错误！")
 		}
-		return LoginReply{Token: token}, nil
+
+		return LoginReply{
+			Token:    token,
+			Id:       user.Id,
+			Username: user.Name,
+			IsAdmin:  user.IsAdmin,
+			HubId:    userHubMap[user.Id],
+		}, nil
 	})
 }
 func (self *handler) createHub(c *gin.Context) {
@@ -91,6 +115,77 @@ func (self *handler) createHub(c *gin.Context) {
 	})
 }
 func (self *handler) joinHub(c *gin.Context) {
+	upGrader := websocket.Upgrader{
+		Subprotocols: []string{c.Request.Header.Get("Sec-WebSocket-Protocol")},
+	}
+	ws, err := upGrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	defer func() {
+		if err != nil {
+			ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1000, err.Error()))
+			ws.Close()
+		}
+	}()
+
+	token := c.Request.Header.Get("Sec-WebSocket-Protocol")
+	decode, err := common.Decode(token)
+	if err != nil {
+		err = errors.Wrapf(err, "授权错误！")
+		return
+	}
+
+	uid := decode.Uid
+	user := userMap[uid]
+	hubId, err := strconv.Atoi(c.Query("hubid"))
+	if err != nil {
+		err = errors.New("传入参数错误！")
+		return
+	}
+	if hubId == 0 {
+		hubId = userHubMap[user.Id]
+	}
+	hub, ok := GetHub(hubId)
+	if !ok {
+		err = errors.New("房间不存在！")
+		return
+	}
+
+	player := NewPlayerWs(ws, user.Id, user.Name)
+	err = hub.Register(player)
+	if err != nil {
+		err = errors.Wrapf(err, "加入房间失败！")
+		return
+	}
+	hub.BroadcastHubSession(c, fmt.Sprintf("玩家【%s】加入了游戏", user.Name))
+	userHubMap[user.Id] = hub.Id
+
+	return
+}
+func (self *handler) outHub(c *gin.Context) {
+	replyHandler(c, func() (interface{}, error) {
+		uid, _ := c.Get("uid")
+		user := userMap[uid.(int)]
+		hub, ok := GetHub(userHubMap[user.Id])
+		if !ok {
+			return nil, errors.New("房间不存在！")
+		}
+
+		err := hub.Unregister(user.Id)
+		if err != nil {
+			return nil, errors.Wrapf(err, "退出房间失败")
+		}
+
+		delete(userHubMap, user.Id)
+		if len(hub.Players) <= 0 && !hub.IsStarted {
+			hub.Close(false)
+		}
+		return nil, nil
+	})
+}
+
+func (self *handler) startHub(c *gin.Context) {
 	replyHandler(c, func() (interface{}, error) {
 		var req HubRequest
 		uid, _ := c.Get("uid")
@@ -108,33 +203,33 @@ func (self *handler) joinHub(c *gin.Context) {
 			return nil, errors.New("房间不存在！")
 		}
 
-		// TODO[Dokiy] 2022/1/26: 这里post请求不清楚可不可以连接
-		upGrader := websocket.Upgrader{}
-		ws, err := upGrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "系统错误：创建websocket链接失败")
+		if hub.Owner != user.Id {
+			return nil, errors.New("只有房主才能开始游戏！")
 		}
 
-		player := NewPlayerWs(ws, user.Id, user.Name)
-		err = hub.Register(player)
-		if err != nil {
-			return nil, errors.Wrapf(err, "加入房间失败！")
-		}
-		hub.BroadcastHubSession(c, fmt.Sprintf("玩家【%s】加入了游戏", user.Name))
-		userHubMap[user.Id] = hub.Id
+		go hub.Start()
 
 		return nil, nil
 	})
 }
 
-func (self *handler) outHub(c *gin.Context) {
+func (self *handler) closeHub(c *gin.Context) {
 	replyHandler(c, func() (interface{}, error) {
-		// TODO[Dokiy] 2022/1/26:
-	})
-}
+		uid, _ := c.Get("uid")
+		user := userMap[uid.(int)]
+		if !user.IsAdmin {
+			return nil, errors.New("无权操作！")
+		}
 
-func (self *handler) startHub(c *gin.Context) {
-	replyHandler(c, func() (interface{}, error) {
-		// TODO[Dokiy] 2022/1/26:
+		hub, ok := GetHub(userHubMap[user.Id])
+		if !ok {
+			return nil, errors.New("房间不存在！")
+		}
+
+		for id, _ := range hub.Players {
+			delete(userHubMap, id)
+		}
+		hub.Close(true)
+		return nil, nil
 	})
 }

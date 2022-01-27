@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -15,7 +14,6 @@ func main() {
 	}
 	logrus.SetOutput(file)
 
-	ctx := context.Background()
 	hub := NewHub(1)
 
 	// 注册
@@ -34,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	err = hub.Start(ctx)
+	err = hub.Start()
 	if err != nil {
 		panic(err)
 	}

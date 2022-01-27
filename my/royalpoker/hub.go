@@ -6,6 +6,8 @@ import (
 	"github.com/dokiy/royalpoker/common"
 	"github.com/dokiy/royalpoker/win3cards"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -16,9 +18,12 @@ type Hub struct {
 	Id      int
 	Owner   int
 	Players map[int]Player
-
-	isStarted   bool
 	playSession PlaySession
+	IsStarted   bool
+
+	ctx         context.Context
+	close       chan struct{}
+	l           sync.Mutex
 }
 
 var hubMap map[int]*Hub
@@ -32,7 +37,16 @@ func NewHub(owner int) *Hub {
 		Id:      id,
 		Owner:   owner,
 		Players: make(map[int]Player),
+		close: make(chan struct{}),
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case <-hub.close:
+			cancel()
+		}
+	}()
+	hub.ctx = ctx
 	hub.playSession = win3cards.NewW3CSession(hub.callPlayer, hub.receivePlayer)
 
 	hubMap[id] = hub
@@ -46,8 +60,10 @@ func NewHub(owner int) *Hub {
 }
 
 func (self *Hub) Register(player Player) error {
+	l.Lock()
+	defer l.Unlock()
 	p, ok := self.Players[player.GetId()]
-	if self.isStarted && !ok {
+	if self.IsStarted && !ok {
 		return errors.New("游戏已开始！")
 	}
 	// 如果之前对用户连接存在，则需要关闭原来对连接
@@ -58,38 +74,35 @@ func (self *Hub) Register(player Player) error {
 	return nil
 }
 
-func (self *Hub) Unregister(player Player) error {
-	if self.isStarted {
+func (self *Hub) Unregister(playerId int) error {
+	l.Lock()
+	defer l.Unlock()
+	if self.IsStarted {
 		return errors.New("游戏已结束！")
 	}
-	_, ok := self.Players[player.GetId()]
+	_, ok := self.Players[playerId]
 	if !ok {
-		return errors.New("未找到该玩家！")
+		return nil
 	}
-	delete(self.Players, player.GetId())
+	delete(self.Players, playerId)
 
 	return nil
 }
 
-func (self *Hub) Run() error {
-	ctx := context.Background()
-	err := self.Start(ctx)
-	if err != nil {
-		return errors.Wrapf(err, "开始游戏失败！")
-	}
-
-	return nil
-}
-
-func (self *Hub) Start(ctx context.Context) error {
-	self.isStarted = true
+func (self *Hub) Start() error {
+	l.Lock()
+	self.IsStarted = true
+	l.Unlock()
 	var players = make([]int, len(self.Players))
 	i := 0
 	for _, player := range self.Players {
 		players[i] = player.GetId()
 		i++
 	}
-	err := self.playSession.Run(ctx, players)
+	err := self.playSession.Run(self.ctx, players)
+	if errors.As(err, &context.Canceled) {
+		logrus.Errorf("游戏被取消：", err.Error())
+	}
 	if err != nil {
 		return errors.Wrapf(err, "开局失败：")
 	}
@@ -97,9 +110,20 @@ func (self *Hub) Start(ctx context.Context) error {
 	// 等待一会儿，让消息发送完成
 	time.Sleep(10 * time.Second)
 	for _, player := range self.Players {
-		go player.Close(ctx)
+		go player.Close(self.ctx)
 	}
 	return nil
+}
+
+func (self *Hub) Close(force bool) {
+	if self.IsStarted && !force {
+		return
+	}
+	for _, player := range self.Players {
+		go player.Close(self.ctx)
+	}
+	delete(hubMap, self.Id)
+	self.close <- struct{}{}
 }
 
 func GetHub(id int) (*Hub, bool) {
@@ -128,5 +152,5 @@ func (self *Hub) receivePlayer(ctx context.Context, id int) ([]byte, error) {
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("接收数据错误：未找到玩家[%d]", id))
 	}
-	return player.Receive(ctx), nil
+	return player.Receive(ctx)
 }

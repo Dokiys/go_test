@@ -84,6 +84,9 @@ func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, players []i
 		// 等待当前玩家操作
 		data, err := self.waitAction(ctx)
 		if err != nil {
+			if errors.As(err, &context.Canceled) {
+				return 0, errors.Wrapf(err,"游戏被关闭：")
+			}
 			logrus.Errorf("接收玩家操作消息错误：%s", err.Error())
 			continue
 		}
