@@ -7,6 +7,7 @@ replace github.com/dokiy/royalpoker/common => ./common
 replace github.com/dokiy/royalpoker/win3cards => ./win3cards
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/dokiy/royalpoker/common v1.0.0
 	github.com/dokiy/royalpoker/win3cards v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.7.7

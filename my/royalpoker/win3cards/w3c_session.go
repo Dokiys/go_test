@@ -30,6 +30,10 @@ func NewW3CSession(caller func(context.Context, int, []byte) error, receiver fun
 func (self *W3cSession) init(players []int) error {
 	// Init
 	length := len(players)
+	// TODO[Dokiy] 2022/1/28: 添加人数校验
+	//if length <= 1 {
+	//	return errors.New("人数不够开局")
+	//}
 	self.Players = players
 	self.count = length
 	self.ReadyInfo = make(map[int]bool, length)
@@ -40,7 +44,8 @@ func (self *W3cSession) init(players []int) error {
 	// 开局
 	for _, id := range self.Players {
 		self.ScoreMap[id] = 0
-		self.ReadyInfo[id] = true
+		// TODO[Dokiy] 2022/1/28: 更改初始化状态
+		self.ReadyInfo[id] = false
 	}
 	self.RoundSession = NewRoundSession(players, self.Caller, self.Receiver)
 	return nil
@@ -49,7 +54,7 @@ func (self *W3cSession) init(players []int) error {
 func (self *W3cSession) Run(ctx context.Context, players []int) error {
 	err := self.init(players)
 	if err != nil {
-		return errors.Wrapf(err, "初始化开局信息失败：")
+		return errors.Wrapf(err, "初始化开局信息失败")
 	}
 
 	// 发送局面信息
@@ -120,7 +125,7 @@ func (self *W3cSession) Play(ctx context.Context, round int) (int, error) {
 		players[(round+i)%l] = id
 	}
 	// 发送位序
-	self.BroadcastSeq(ctx, players)
+	//self.BroadcastSeq(ctx, players)
 
 	self.Poker.CutTheDeck()
 	winner, err := self.RoundSession.Run(ctx, self.Poker, players)
@@ -154,6 +159,20 @@ func (self *W3cSession) BroadcastSession(ctx context.Context) {
 	for _, id := range self.Players {
 		go self.Caller(ctx, id, data)
 	}
+}
+
+func (self *W3cSession) InfoPlayerSession(ctx context.Context, id int) {
+	data := GenW3cSessionMsg(self)
+	go self.Caller(ctx, id, data)
+
+	//for _, info := range self.ReadyInfo {
+	//	if !info {
+	//		return
+	//	}
+	//}
+
+	data = GenRoundSessionMsg(self.RoundSession)
+	go self.Caller(ctx, id, data)
 }
 
 func (self *W3cSession) BroadcastResult(ctx context.Context) {

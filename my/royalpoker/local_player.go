@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-var l sync.Mutex
+var localPlayerLock sync.Mutex
 
 type LocalPlayer struct {
 	Id   int
@@ -48,7 +48,7 @@ func NewLocalPlayer(name string) *LocalPlayer {
 		for {
 			select {
 			case <-player.start:
-				l.Lock()
+				localPlayerLock.Lock()
 				print(fmt.Sprintf("请对玩家[%d]进行操作\n", player.Id))
 				var msg string
 				reader := bufio.NewReader(os.Stdin)
@@ -62,7 +62,7 @@ func NewLocalPlayer(name string) *LocalPlayer {
 
 				player.receive <- []byte(msg)
 				player.start <- struct{}{}
-				l.Unlock()
+				localPlayerLock.Unlock()
 
 			case <-player.close:
 				return

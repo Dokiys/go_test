@@ -27,13 +27,13 @@ var FS embed.FS
 func init() {
 	userMap = make(map[int]*User, 10)
 	userNameMap = make(map[string]int, 10)
-	userMap[1] = &User{
-		Id:       1,
+	userMap[999] = &User{
+		Id:       999,
 		Name:     "zhangsan",
 		Password: "123",
 		IsAdmin:  true,
 	}
-	userNameMap["zhangsan"] = 1
+	userNameMap["zhangsan"] = 999
 
 	userHubMap = make(map[int]int)
 }
@@ -64,10 +64,10 @@ func main() {
 	r.POST("/login", handler.login)
 	r.GET("/hub/join", handler.joinHub)
 
-	r.POST("/hub/create", handler.createHub, TokenHandle)
-	r.POST("/hub/out", handler.outHub, TokenHandle)
-	r.POST("/hub/start", handler.startHub, TokenHandle)
-	r.POST("/hub/closeHub", handler.closeHub, TokenHandle)
+	r.POST("/hub/create", TokenHandle, handler.createHub)
+	r.POST("/hub/out", TokenHandle, handler.outHub)
+	r.POST("/hub/start", TokenHandle, handler.startHub)
+	r.POST("/hub/closeHub", TokenHandle, handler.closeHub)
 
 	err := r.Run(":8080")
 	if err != nil {

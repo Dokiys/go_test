@@ -54,49 +54,51 @@ func replyHandler(c *gin.Context, f func() (interface{}, error)) {
 }
 func (self *handler) login(c *gin.Context) {
 	replyHandler(c, func() (interface{}, error) {
-		token := c.Request.Header.Get("Authorization")
-		decode, err := common.Decode(token)
-		if err == nil {
+		var login LoginRequest
+		err1 := c.ShouldBindJSON(&login)
+
+		if err1 == nil {
+			var token string
+			uid := userNameMap[login.Username]
+			user, ok := userMap[uid]
+			if !ok {
+				return nil, errors.New("账号不存在！")
+			}
+
+			if user.Password != login.Password {
+				return nil, errors.New("密码错误！")
+			}
+
+			token, err1 = common.Encode(&common.Claims{
+				Uid:     user.Id,
+				Name:    user.Name,
+				IsAdmin: user.IsAdmin,
+			})
+			if err1 != nil {
+				return nil, errors.Wrapf(err1, "生成token错误！")
+			}
+
 			return LoginReply{
 				Token:    token,
-				Id:       decode.Uid,
-				Username: decode.Name,
-				IsAdmin:  decode.IsAdmin,
-				HubId:    userHubMap[decode.Uid],
+				Id:       user.Id,
+				Username: user.Name,
+				IsAdmin:  user.IsAdmin,
+				HubId:    userHubMap[user.Id],
 			}, nil
 		}
 
-		var login LoginRequest
-		err = c.BindJSON(&login)
+		token := c.Request.Header.Get("Authorization")
+		decode, err := common.Decode(token)
 		if err != nil {
-			return nil, errors.Wrapf(err, "传入参数错误！")
-		}
-
-		uid := userNameMap[login.Username]
-		user, ok := userMap[uid]
-		if !ok {
-			return nil, errors.New("账号不存在！")
-		}
-
-		if user.Password != login.Password {
-			return nil, errors.New("密码错误！")
-		}
-
-		token, err = common.Encode(&common.Claims{
-			Uid:     user.Id,
-			Name:    user.Name,
-			IsAdmin: user.IsAdmin,
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "生成token错误！")
+			return nil, errors.Wrapf(err, "身份认证失败！")
 		}
 
 		return LoginReply{
 			Token:    token,
-			Id:       user.Id,
-			Username: user.Name,
-			IsAdmin:  user.IsAdmin,
-			HubId:    userHubMap[user.Id],
+			Id:       decode.Uid,
+			Username: decode.Name,
+			IsAdmin:  decode.IsAdmin,
+			HubId:    userHubMap[decode.Uid],
 		}, nil
 	})
 }
@@ -152,6 +154,12 @@ func (self *handler) joinHub(c *gin.Context) {
 		return
 	}
 
+	if player, ok := hub.Players[user.Id]; ok {
+		player.SetConn(c, ws)
+		hub.BroadcastHubSession(c, fmt.Sprintf("玩家【%s】正在重连游戏", user.Name))
+		hub.InfoPlayerPlaySession(c, player.GetId())
+		return
+	}
 	player := NewPlayerWs(ws, user.Id, user.Name)
 	err = hub.Register(player)
 	if err != nil {
@@ -161,7 +169,10 @@ func (self *handler) joinHub(c *gin.Context) {
 	hub.BroadcastHubSession(c, fmt.Sprintf("玩家【%s】加入了游戏", user.Name))
 	userHubMap[user.Id] = hub.Id
 
-	return
+	select {
+	case <-player.close:
+		return
+	}
 }
 func (self *handler) outHub(c *gin.Context) {
 	replyHandler(c, func() (interface{}, error) {
@@ -207,7 +218,12 @@ func (self *handler) startHub(c *gin.Context) {
 			return nil, errors.New("只有房主才能开始游戏！")
 		}
 
-		go hub.Start()
+		go func() {
+			err := hub.Start()
+			if err != nil {
+				hub.BroadcastHubSession(c, err.Error())
+			}
+		}()
 
 		return nil, nil
 	})

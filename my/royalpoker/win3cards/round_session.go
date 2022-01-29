@@ -26,9 +26,9 @@ type RoundSession struct {
 }
 
 type PlayInfo struct {
-	Score    int  // 玩家投出积分
-	IsViewed bool // 是否看牌
-	IsOut    bool // 是否出局
+	Score    int  `json:"score"`     // 玩家投出积分
+	IsViewed bool `json:"is_viewed"` // 是否看牌
+	IsOut    bool `json:"is_out"`    // 是否出局
 }
 
 func NewRoundSession(players []int,
@@ -43,9 +43,6 @@ func NewRoundSession(players []int,
 }
 
 func (self *RoundSession) init(poker *Win3Cards, players []int) error {
-	if len(players) <= 1 {
-		return errors.New("人数不够开局！")
-	}
 	l := len(players)
 	self.handCards = make(map[int]HandCard, l)
 	self.PInfo = make(map[int]*PlayInfo, l)
@@ -85,7 +82,7 @@ func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, players []i
 		data, err := self.waitAction(ctx)
 		if err != nil {
 			if errors.As(err, &context.Canceled) {
-				return 0, errors.Wrapf(err,"游戏被关闭：")
+				return 0, errors.Wrapf(err, "游戏被关闭：")
 			}
 			logrus.Errorf("接收玩家操作消息错误：%s", err.Error())
 			continue

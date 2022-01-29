@@ -17,57 +17,59 @@ const (
 
 type MsgType string
 type InfoMsg struct {
-	Type MsgType
-	Msg  string
+	Type MsgType `json:"type"`
+	Msg  string  `json:"msg"`
 }
 
 type SeqMsg struct {
-	Type MsgType
-	Data SeqMsgData
+	Type MsgType    `json:"type"`
+	Data SeqMsgData `json:"data"`
 }
 
 type SeqMsgData struct {
-	Seq []int
+	Seq []int `json:"seq"`
 }
 
 type W3cSessionMsg struct {
-	Type MsgType
-	Data W3cSessionMsgData
+	Type MsgType           `json:"type"`
+	Data W3cSessionMsgData `json:"data"`
 }
 
 type W3cSessionMsgData struct {
-	ScoreMap  map[int]int  // 玩家分数
-	Round     int          // 当前回合数
-	ReadyInfo map[int]bool // 准备信息
+	ScoreMap  map[int]int  `json:"score_map"`  // 玩家分数
+	Round     int          `json:"round"`      // 当前回合数
+	ReadyInfo map[int]bool `json:"ready_info"` // 准备信息
 }
 
 type RoundSessionMsg struct {
-	Type MsgType
-	Data RoundSessionData
+	Type MsgType          `json:"type"`
+	Data RoundSessionData `json:"data"`
 }
 
 type RoundSessionData struct {
-	PInfoIndex map[int]*PlayInfo // 本局玩家信息 key index
-	PLog       []string          // 回合操作流水
-	MaxBet     int               // 当前轮注码(开牌值计算)
+	PInfoIndex    map[int]*PlayInfo `json:"pinfo_index"` // 本局玩家信息 key index
+	PLog          []string          `json:"plog"`        // 回合操作流水
+	MaxBet        int               `json:"max_bet"`     // 当前轮注码(开牌值计算)
+	CurrentPlayer int               `json:"current_player"`
+	Seq           []int             `json:"seq"`
 }
 
 type ActionViewMsg struct {
-	Type MsgType
-	Data ActionViewData
+	Type MsgType        `json:"type"`
+	Data ActionViewData `json:"data"`
 }
 
 type ActionViewData struct {
-	HandCard HandCard
+	HandCard HandCard `json:"hand_card"`
 }
 
 type ViewLogMsg struct {
-	Type MsgType
-	Data ViewLogData
+	Type MsgType     `json:"type"`
+	Data ViewLogData `json:"data"`
 }
 
 type ViewLogData struct {
-	HandCards map[int]HandCard
+	HandCards map[int]HandCard `json:"hand_cards"`
 }
 
 // =========================================================
@@ -133,7 +135,7 @@ func GenW3cResultMsg(ws *W3cSession) []byte {
 
 func GenRoundSessionMsg(rs *RoundSession) []byte {
 	// 将id转换成index
-	pinfoIndex := make(map[int]*PlayInfo, len(rs.PInfo))
+	pinfoIndex := make(map[int]*PlayInfo, len(rs.Players))
 	for i, id := range rs.Players {
 		pinfoIndex[i] = rs.PInfo[id]
 	}
@@ -141,9 +143,11 @@ func GenRoundSessionMsg(rs *RoundSession) []byte {
 	rsMsg := RoundSessionMsg{
 		Type: MSGTYPE_ROUND_SESSION,
 		Data: RoundSessionData{
-			PInfoIndex: pinfoIndex,
-			PLog:       rs.PLog,
-			MaxBet:     rs.MaxBet,
+			PInfoIndex:    pinfoIndex,
+			PLog:          rs.PLog,
+			MaxBet:        rs.MaxBet,
+			CurrentPlayer: rs.current,
+			Seq:           rs.Players,
 		},
 	}
 	bytes, err := json.Marshal(rsMsg)

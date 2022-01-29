@@ -13,6 +13,8 @@ import (
 
 type PlaySession interface {
 	Run(ctx context.Context, players []int) error
+	BroadcastSession(ctx context.Context)
+	InfoPlayerSession(ctx context.Context, id int)
 }
 type Hub struct {
 	Id      int
@@ -59,26 +61,30 @@ func NewHub(owner int) *Hub {
 	return hub
 }
 
+var hubLock sync.Mutex
 func (self *Hub) Register(player Player) error {
-	l.Lock()
-	defer l.Unlock()
-	p, ok := self.Players[player.GetId()]
-	if self.IsStarted && !ok {
+	hubLock.Lock()
+	defer hubLock.Unlock()
+	if self.IsStarted {
 		return errors.New("游戏已开始！")
 	}
 	// 如果之前对用户连接存在，则需要关闭原来对连接
-	if ok {
-		p.Close(context.TODO())
-	}
+	//p, ok := self.Players[player.GetId()]
+	//if ok {
+	//	p.Close(context.TODO())
+	//}
 	self.Players[player.GetId()] = player
+	if self.IsStarted {
+		self.playSession.InfoPlayerSession(self.ctx, player.GetId())
+	}
 	return nil
 }
 
 func (self *Hub) Unregister(playerId int) error {
-	l.Lock()
-	defer l.Unlock()
+	hubLock.Lock()
+	defer hubLock.Unlock()
 	if self.IsStarted {
-		return errors.New("游戏已结束！")
+		return errors.New("游戏已开始！")
 	}
 	_, ok := self.Players[playerId]
 	if !ok {
@@ -90,9 +96,13 @@ func (self *Hub) Unregister(playerId int) error {
 }
 
 func (self *Hub) Start() error {
-	l.Lock()
+	hubLock.Lock()
+	if self.IsStarted == true {
+		hubLock.Unlock()
+		return nil
+	}
 	self.IsStarted = true
-	l.Unlock()
+	hubLock.Unlock()
 	var players = make([]int, len(self.Players))
 	i := 0
 	for _, player := range self.Players {
@@ -101,10 +111,11 @@ func (self *Hub) Start() error {
 	}
 	err := self.playSession.Run(self.ctx, players)
 	if errors.As(err, &context.Canceled) {
-		logrus.Errorf("游戏被取消：", err.Error())
+		logrus.Errorf("游戏被取消", err.Error())
 	}
 	if err != nil {
-		return errors.Wrapf(err, "开局失败：")
+		self.IsStarted = false
+		return errors.Wrapf(err, "开局失败")
 	}
 
 	// 等待一会儿，让消息发送完成
@@ -136,6 +147,12 @@ func (self *Hub) BroadcastHubSession(ctx context.Context, msg string) {
 	for id, _ := range self.Players {
 		go self.callPlayer(ctx, id, data)
 	}
+}
+func (self *Hub) InfoPlayerPlaySession(ctx context.Context, id int) {
+	if !self.IsStarted {
+		return
+	}
+	self.playSession.InfoPlayerSession(ctx, id)
 }
 
 func (self *Hub) callPlayer(ctx context.Context, id int, msg []byte) error {

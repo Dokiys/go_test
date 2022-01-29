@@ -5,53 +5,70 @@
 </head>
 <body>
 <template id="app">
-    <div id="login" v-if="showDiv == 'login'">
-        <form>
-            <p>用户名:<input id="username" type="text">
-            <p>密码：<input id="password" type="password">
-            <p>
-                <button type="submit" id="loginButton" v-on:click='loginButton()'>登录</button>
-        </form>
-    </div>
-    <div v-else-if="showDiv == 'index'">
-        <form>
+    <div>
+        <div id="alertmsg"
+             style="position: fixed;top: 30px;left: 20%;right: 10%;padding: 20px 30px;background: rgba(0,0,0, .6);color: #fff;font-size: 14px;text-align: center;z-index: 999;display: none">
+        </div>
+
+        <div id="wait" v-if="showDiv == 'wait'">
+            <p>加载中。。。</p>
+        </div>
+        <div id="login" v-else-if="showDiv == 'login'">
+            <form>
+                <p>用户名:<input id="username" type="text">
+                <p>密码：<input id="password" type="password">
+                <p>
+                    <button type="submit" id="loginButton" v-on:click='loginButton()'>登录</button>
+            </form>
+        </div>
+        <div v-else-if="showDiv == 'index'">
+            <form>
+                <div>
+                    <p>你好： ${user.name}
+                        <button id="logoutButton" style="margin-left: 60px" v-on:click='logoutButton()'>退出</button>
+                    </p>
+                    <button id="createButton" v-on:click='createButton()'>创建房间</button>
+                </div>
+                <div>
+                    <p><input id="joinInput" type="number" placeholder="请输入房间号">
+                        <button id="joinButton" v-on:click='joinButton($("#joinInput").val())'>加入房间</button>
+                </div>
+                <div v-if="user.is_admin">
+                    <p><input id="closeInput" type="number" placeholder="请输入房间号">
+                        <button id="closeButton" v-on:click='closeButton()'>关闭房间</button>
+                </div>
+            </form>
+        </div>
+
+        <div v-else-if="showDiv == 'hub'">
             <div>
-                <p>你好： ${user.name}
-                    <button id="logoutButton" style="margin-left: 60px" v-on:click='logoutButton()'>退出</button>
+                <p>房间号：${hub.id}
+                    <button id="outButton" style="margin-left: 30px" v-if="!w3c.is_playing" v-on:click='outButton()'>退出房间</button>
                 </p>
-                <button id="createButton" v-on:click='createButton()'>创建房间</button>
-            </div>
-            <div>
-                <p><input id="joinInput" type="number" placeholder="请输入房间号">
-                    <button id="joinButton" v-on:click='joinButton($("#joinInput").val())'>加入房间</button>
-            </div>
-            <div v-if="user.is_admin">
-                <p><input id="closeInput" type="number" placeholder="请输入房间号">
-                    <button id="closeButton" v-on:click='closeButton()'>关闭房间</button>
-            </div>
-        </form>
-    </div>
+                <p>房间玩家：
+                    <span id="playerList" v-for="player in hub.players" :key="player.id">【${player.name}】 </span>
+                </p>
 
-    <div v-else-if="showDiv == 'hub'">
-        <div>
-            <p>房间号：${hub_id}
-                <button id="outButton" style="margin-left: 30px" v-on:click='outButton()'>退出房间</button>
-            </p>
-            <!--            <button id="outButton" v-on:click='outButton()'>当前注码</button>-->
-            <!--            <button id="outButton" v-on:click='outButton()'>开始游戏</button>-->
-            <!--            <button id="outButton" v-on:click='outButton()'>准备</button>-->
-            <!--            <button id="outButton" v-on:click='outButton()'>跟</button>-->
-            <!--            <button id="outButton" v-on:click='outButton()'>看牌</button>-->
-            <!--            <button id="outButton" v-on:click='outButton()'>开</button>-->
+                <p>
+                    <button id="startButton" v-if="!w3c.is_playing" v-on:click='startButton()'>开始游戏</button>
+                </p>
+                <!--            <button id="outButton" v-on:click='outButton()'>当前注码</button>-->
+                <!--            <button id="outButton" v-on:click='outButton()'>开始游戏</button>-->
+                <!--            <button id="outButton" v-on:click='outButton()'>准备</button>-->
+                <!--            <button id="outButton" v-on:click='outButton()'>跟</button>-->
+                <!--            <button id="outButton" v-on:click='outButton()'>看牌</button>-->
+                <!--            <button id="outButton" v-on:click='outButton()'>开</button>-->
+                <div v-if="w3c.is_playing">
+                    <p>
+                        <button id="readyButton" v-on:click='readyButton()' v-if="!w3c.ready_info[user.id]">准备</button>
+                    </p>
+                </div>
+            </div>
 
-            <!--            <button id="outButton" v-on:click='outButton()'>玩家列表（准备，积分，名称，开牌等信息）</button>-->
+            <td valign="top" width="50%">
+                <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
+            </td>
         </div>
-        <div>
-            结算弹框信息
-        </div>
-        <td valign="top" width="50%">
-            <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
-        </td>
     </div>
 </template>
 </body>
@@ -60,15 +77,33 @@
 <!--<script src="https://localhost:8080/static/app.js"></script>-->
 <script>
     var token = localStorage.getItem('token');
-    var ws;
     var app = new Vue({
         el: "#app",
         delimiters: ['${', '}'],
         data() {
             return {
-                showDiv: 'login',
+                wsGloble: {},
+                showDiv: 'wait',
                 user: {},
-                hub_id: 0,
+                hub: {
+                    id: 0,
+                    owner: 0,
+                    players: [],
+
+                    showDiv: 'wait',
+                },
+                w3c: {
+                    seq: [],
+                    round: 0,
+                    ready_info: {},
+                    score_map: {},
+                    is_playing: false
+                },
+                round_session: {
+                    pinfo_index: {},
+                    plog: [],
+                    max_bet: 0,
+                }
             }
         },
         created: () => {
@@ -83,13 +118,16 @@
                     success: function (res) {
                         if (res.code !== 0) {
                             alert(res.msg)
+                            app.showDiv = 'login'
                         }
                         app.user.id = res.data.id
                         app.user.name = res.data.username
                         app.user.is_admin = res.data.is_admin
-                        app.hub_id = res.data.hub_id
-                        if (app.hub_id !== 0) {
+                        app.hub.id = res.data.hub_id
+                        if (app.hub.id !== 0) {
+                            joinButton(app.hub.id)
                             app.showDiv = 'hub'
+                            app.hub.showDiv = 'ready'
                         } else {
                             app.showDiv = 'index'
                         }
@@ -120,7 +158,7 @@
                 app.user.id = res.data.id
                 app.user.name = res.data.username
                 app.user.is_admin = res.data.is_admin
-                app.hub_id = res.data.hub_id
+                app.hub.id = res.data.hub_id
 
                 localStorage.setItem('token', res.data.token);
                 app.showDiv = 'index'
@@ -147,51 +185,29 @@
                     alert(res.msg)
                     return
                 }
-                app.hub_id = res.data.id
+
+                app.hub.id = res.data.id
+                joinButton(res.data.id)
                 app.showDiv = 'hub'
+                app.hub.showDiv = 'ready'
             }
         });
     }
     // 加入房间
     joinButton = (id) => {
-        if (ws) {
-            return
-        }
         wsurl = "ws://localhost:8080/hub/join?hubid=" + id
-        ws = new WebSocket(wsurl,[token]);
-        //连接打开时触发
-        ws.onopen = function (evt) {
-            console.log("Connection open ...");
-            // ws.send("Hello WebSockets!");
-        };
+        ws = new WebSocket(wsurl, [token]);
         //接收到消息时触发
         ws.onmessage = function (evt) {
             console.log("Received Message: " + evt.data);
+            handleMsg(evt.data)
         };
         //连接关闭时触发
         ws.onclose = function (evt) {
-            // todo[dokiy]: to be continued
-            alert(evt.reason)
-            console.log("Connection closed.");
+            alert("连接关闭：",evt.reason)
         };
 
-        // $.ajax({
-        //     url: 'http://localhost:8080/hub/join',
-        //     type: 'POST',
-        //     headers: {'Authorization': token},
-        //     data: JSON.stringify(data),
-        //     contentType: 'application/json; charset=utf-8',
-        //     dataType: 'json',
-        //     async: false,
-        //     success: function (res) {
-        //         if (res.code !== 0) {
-        //             alert(res.msg)
-        //             return
-        //         }
-        //         app.hub_id = res.data.id
-        //         app.showDiv = 'hub'
-        //     }
-        // });
+        app.wsGloble = ws
     }
     // 退出房间
     outButton = (event) => {
@@ -208,10 +224,97 @@
                     return
                 }
 
-                app.hub_id = 0
+                app.hub.id = 0
+                app.hub.players = []
+                app.hub.owner = 0
                 app.showDiv = 'index'
+                let ws = localStorage.getItem('ws')
+                if (ws !== null) {
+                    localStorage.removeItem('ws')
+                    app.wsGloble = {}
+                }
             }
         });
+    }
+
+    // 开始游戏
+    startButton = (event) => {
+        if (app.user.id !== app.hub.owner) {
+            // todo[dokiy]: 测试
+            alert("只有房主才能开始游戏！")
+        }
+        let data = {id: app.hub.id}
+        $.ajax({
+            url: 'http://localhost:8080/hub/start',
+            type: 'POST',
+            headers: {'Authorization': token},
+            data: JSON.stringify(data),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function (res) {
+                if (res.code !== 0) {
+                    alert(res.msg)
+                }
+            }
+        });
+    }
+
+    // 准备
+    readyButton = () => {
+        if (app.wsGloble === undefined) {
+            alert("连接错误！")
+            return
+        }
+
+        var msg = JSON.stringify({action_type: 'W3C_ACTION_READY'})
+        app.wsGloble.send(msg)
+    }
+
+    handleMsg = (msg) => {
+        let msgData = JSON.parse(msg);
+        let data = msgData.data
+        switch (msgData.type) {
+            case "HUB_SESSION":
+                app.hub.owner = data.owner;
+                app.hub.players = data.players;
+                app.w3c.is_start = data.is_start;
+                alertMsg(msgData.msg)
+                break
+            case "W3C_SESSION":
+                app.w3c.round = data.round;
+                app.w3c.ready_info = data.ready_info;
+                app.w3c.score_map = data.score_map;
+                app.w3c.is_playing = true
+                // for (let id in data.ready_info) {
+                //     if (!data.ready_info[id]) {
+                //         app.w3c.is_playing = false
+                //         break
+                //     }
+                // }
+                break
+            case "INFO":
+                alertMsg(msgData.msg)
+                break
+            case "SEQ":
+                app.w3c.seq = data.seq;
+                break
+            case "ROUND_SESSION":
+                app.round_session.pinfo_index = data.pinfo_index;
+                app.round_session.plog = data.plog;
+                app.round_session.max_bet = data.max_bet;
+        }
+        console.log(app.hub)
+    }
+
+    alertMsg = (msg) => {
+        let am = $('#alertmsg')
+        am.html(msg);
+        am.show();
+        setTimeout(() => {
+            am.html('');
+            am.hide();
+        }, 2000)
     }
 </script>
 </html>
