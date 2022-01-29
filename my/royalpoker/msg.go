@@ -18,8 +18,7 @@ type HubSessionMsg struct {
 
 type HubSessionMsgData struct {
 	Owner     int         `json:"owner"`
-	Players   []PlayerMsg `json:"players"`
-	IsStarted bool        `json:"is_started"`
+	Players   map[int]PlayerMsg `json:"players"`
 }
 
 type PlayerMsg struct {
@@ -30,14 +29,12 @@ type PlayerMsg struct {
 // =========================================================
 
 func GenHubSessionMsg(hub *Hub, msg string) []byte {
-	playerMsg := make([]PlayerMsg, len(hub.Players))
-	var i = 0
-	for _, player := range hub.Players {
-		playerMsg[i] = PlayerMsg{
+	playerMsg := make(map[int]PlayerMsg, len(hub.Players))
+	for id, player := range hub.Players {
+		playerMsg[id] = PlayerMsg{
 			Id:   player.GetId(),
 			Name: player.GetName(),
 		}
-		i++
 	}
 	act := HubSessionMsg{
 		Type: MSGTYPE_HUB_SESSION,
@@ -45,7 +42,6 @@ func GenHubSessionMsg(hub *Hub, msg string) []byte {
 		Data: HubSessionMsgData{
 			Owner:     hub.Owner,
 			Players:   playerMsg,
-			IsStarted: hub.IsStarted,
 		},
 	}
 	bytes, err := json.Marshal(act)

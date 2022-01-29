@@ -39,6 +39,7 @@ type W3cSessionMsgData struct {
 	ScoreMap  map[int]int  `json:"score_map"`  // 玩家分数
 	Round     int          `json:"round"`      // 当前回合数
 	ReadyInfo map[int]bool `json:"ready_info"` // 准备信息
+	Seq       []int        `json:"seq"`
 }
 
 type RoundSessionMsg struct {
@@ -47,11 +48,10 @@ type RoundSessionMsg struct {
 }
 
 type RoundSessionData struct {
-	PInfoIndex    map[int]*PlayInfo `json:"pinfo_index"` // 本局玩家信息 key index
+	PInfo         map[int]*PlayInfo `json:"pinfo_index"` // 本局玩家信息 key id
 	PLog          []string          `json:"plog"`        // 回合操作流水
 	MaxBet        int               `json:"max_bet"`     // 当前轮注码(开牌值计算)
-	CurrentPlayer int               `json:"current_player"`
-	Seq           []int             `json:"seq"`
+	CurrentPlayer int               `json:"current_player"`	// id
 }
 
 type ActionViewMsg struct {
@@ -109,6 +109,7 @@ func GenW3cSessionMsg(ws *W3cSession) []byte {
 			ScoreMap:  ws.ScoreMap,
 			Round:     ws.Round,
 			ReadyInfo: ws.ReadyInfo,
+			Seq:       ws.Players,
 		},
 	}
 	bytes, err := json.Marshal(wsMsg)
@@ -134,20 +135,13 @@ func GenW3cResultMsg(ws *W3cSession) []byte {
 }
 
 func GenRoundSessionMsg(rs *RoundSession) []byte {
-	// 将id转换成index
-	pinfoIndex := make(map[int]*PlayInfo, len(rs.Players))
-	for i, id := range rs.Players {
-		pinfoIndex[i] = rs.PInfo[id]
-	}
-
 	rsMsg := RoundSessionMsg{
 		Type: MSGTYPE_ROUND_SESSION,
 		Data: RoundSessionData{
-			PInfoIndex:    pinfoIndex,
+			PInfo:         rs.PInfo,
 			PLog:          rs.PLog,
 			MaxBet:        rs.MaxBet,
-			CurrentPlayer: rs.current,
-			Seq:           rs.Players,
+			CurrentPlayer: rs.Players[rs.current],
 		},
 	}
 	bytes, err := json.Marshal(rsMsg)

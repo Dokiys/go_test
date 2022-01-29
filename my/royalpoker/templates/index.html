@@ -2,6 +2,11 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <style>
+        .play_list_plog {
+            display: flex;
+        }
+    </style>
 </head>
 <body>
 <template id="app">
@@ -41,33 +46,53 @@
         </div>
 
         <div v-else-if="showDiv == 'hub'">
-            <div>
+            <div class="w3c_session">
                 <p>房间号：${hub.id}
-                    <button id="outButton" style="margin-left: 30px" v-if="!w3c.is_playing" v-on:click='outButton()'>退出房间</button>
+                    <button id="outButton" style="margin-left: 30px" v-if="!w3c.is_start" v-on:click='outButton()'>
+                        退出房间
+                    </button>
                 </p>
-                <p>房间玩家：
-                    <span id="playerList" v-for="player in hub.players" :key="player.id">【${player.name}】 </span>
+                <p v-if="!w3c.is_start">房间玩家：
+                    <span id="hubPlayerList" v-for="player in hub.players" :key="player.id">【${player.name}】 </span>
                 </p>
 
                 <p>
-                    <button id="startButton" v-if="!w3c.is_playing" v-on:click='startButton()'>开始游戏</button>
+                    <button id="startButton" v-if="!w3c.is_start" v-on:click='startButton()'>开始游戏</button>
                 </p>
-                <!--            <button id="outButton" v-on:click='outButton()'>当前注码</button>-->
-                <!--            <button id="outButton" v-on:click='outButton()'>开始游戏</button>-->
-                <!--            <button id="outButton" v-on:click='outButton()'>准备</button>-->
                 <!--            <button id="outButton" v-on:click='outButton()'>跟</button>-->
                 <!--            <button id="outButton" v-on:click='outButton()'>看牌</button>-->
                 <!--            <button id="outButton" v-on:click='outButton()'>开</button>-->
-                <div v-if="w3c.is_playing">
+
+            </div>
+            <div class="play_session" v-if="w3c.is_start">
+                <div id="rs_head">
+                    <div>第【${w3c.round}/${w3c.list_seq.length*3}】回合</div>
+                    <div v-if="w3c.is_playing">当前操作玩家:【${hub.players[round_session.current_player].name}】</div>
+                    <div v-if="w3c.is_playing">当前注码:【${round_session.max_bet}】</div>
+                </div>
+                <div class="play_list_plog">
+                    <div>
+                        <div>
+                            <p>玩家列表: </p>
+                            <div id="rs_player_list" v-for="id in w3c.list_seq" :key="id">
+                                <span>【${hub.players[id].name}】${!w3c.is_playing&w3c.ready_info[id]?'(已准备)':''}:${round_session[id]}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <td valign="top" width="50%">
+                            <p>操作记录: </p>
+                            <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
+                        </td>
+                    </div>
+                </div>
+                <div id="rs_operation">
                     <p>
-                        <button id="readyButton" v-on:click='readyButton()' v-if="!w3c.ready_info[user.id]">准备</button>
+                        <button id="readyButton" v-on:click='readyButton()' v-if="!w3c.ready_info[user.id]">准备
+                        </button>
                     </p>
                 </div>
             </div>
-
-            <td valign="top" width="50%">
-                <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
-            </td>
         </div>
     </div>
 </template>
@@ -88,21 +113,24 @@
                 hub: {
                     id: 0,
                     owner: 0,
-                    players: [],
+                    players: {},
 
                     showDiv: 'wait',
                 },
                 w3c: {
-                    seq: [],
                     round: 0,
                     ready_info: {},
                     score_map: {},
-                    is_playing: false
+                    is_playing: false,
+                    is_start: false,
+                    list_seq: [],
                 },
                 round_session: {
                     pinfo_index: {},
                     plog: [],
                     max_bet: 0,
+                    current_player: 0,
+                    play_seq: [],
                 }
             }
         },
@@ -204,7 +232,7 @@
         };
         //连接关闭时触发
         ws.onclose = function (evt) {
-            alert("连接关闭：",evt.reason)
+            alert("连接关闭：", evt.reason)
         };
 
         app.wsGloble = ws
@@ -225,7 +253,7 @@
                 }
 
                 app.hub.id = 0
-                app.hub.players = []
+                app.hub.players = {}
                 app.hub.owner = 0
                 app.showDiv = 'index'
                 let ws = localStorage.getItem('ws')
@@ -278,31 +306,32 @@
             case "HUB_SESSION":
                 app.hub.owner = data.owner;
                 app.hub.players = data.players;
-                app.w3c.is_start = data.is_start;
                 alertMsg(msgData.msg)
                 break
             case "W3C_SESSION":
                 app.w3c.round = data.round;
                 app.w3c.ready_info = data.ready_info;
                 app.w3c.score_map = data.score_map;
+                app.w3c.list_seq = data.seq;
+                app.w3c.is_start = true
                 app.w3c.is_playing = true
-                // for (let id in data.ready_info) {
-                //     if (!data.ready_info[id]) {
-                //         app.w3c.is_playing = false
-                //         break
-                //     }
-                // }
-                break
-            case "INFO":
-                alertMsg(msgData.msg)
-                break
-            case "SEQ":
-                app.w3c.seq = data.seq;
+                for (let id in data.ready_info) {
+                    if (!data.ready_info[id]) {
+                        app.w3c.is_playing = false
+                        break
+                    }
+                }
                 break
             case "ROUND_SESSION":
                 app.round_session.pinfo_index = data.pinfo_index;
                 app.round_session.plog = data.plog;
                 app.round_session.max_bet = data.max_bet;
+                app.round_session.current_player = data.current_player;
+                app.round_session.play_seq = data.seq;
+                break
+            case "INFO":
+                alertMsg(msgData.msg)
+                break
         }
         console.log(app.hub)
     }

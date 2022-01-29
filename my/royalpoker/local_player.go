@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dokiy/royalpoker/common"
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"os"
 	"sync"
@@ -21,6 +22,10 @@ type LocalPlayer struct {
 	receive chan []byte
 	close   chan struct{}
 	start   chan struct{}
+}
+
+func (self *LocalPlayer) SetConn(ctx context.Context, conn *websocket.Conn) {
+	return
 }
 
 func NewLocalPlayer(name string) *LocalPlayer {

@@ -36,7 +36,6 @@ func NewRoundSession(players []int,
 	receiver func(context.Context, int) ([]byte, error)) *RoundSession {
 
 	return &RoundSession{
-		Players:  players,
 		Caller:   caller,
 		Receiver: receiver,
 	}

@@ -163,7 +163,7 @@ func (self *W3cSession) BroadcastSession(ctx context.Context) {
 
 func (self *W3cSession) InfoPlayerSession(ctx context.Context, id int) {
 	data := GenW3cSessionMsg(self)
-	go self.Caller(ctx, id, data)
+	self.Caller(ctx, id, data)
 
 	//for _, info := range self.ReadyInfo {
 	//	if !info {
@@ -172,7 +172,7 @@ func (self *W3cSession) InfoPlayerSession(ctx context.Context, id int) {
 	//}
 
 	data = GenRoundSessionMsg(self.RoundSession)
-	go self.Caller(ctx, id, data)
+	self.Caller(ctx, id, data)
 }
 
 func (self *W3cSession) BroadcastResult(ctx context.Context) {
