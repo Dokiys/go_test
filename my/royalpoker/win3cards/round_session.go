@@ -19,10 +19,11 @@ type RoundSession struct {
 
 	ViewLog map[int][]int // 看牌记录 key index
 
-	Caller   func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
-	Receiver func(ctx context.Context, id int) ([]byte, error)   // 从Player接收消息
-	current  int                                                 // 当前步骤玩家index
-	l        sync.Mutex
+	Caller        Caller        // 向Player发送消息
+	Receiver      Receiver      // 从Player接收消息
+	GetPlayerName GetPlayerName // 获取用户名称
+	current       int           // 当前步骤玩家index
+	l             sync.Mutex
 }
 
 type PlayInfo struct {
@@ -31,13 +32,11 @@ type PlayInfo struct {
 	IsOut    bool `json:"is_out"`    // 是否出局
 }
 
-func NewRoundSession(players []int,
-	caller func(context.Context, int, []byte) error,
-	receiver func(context.Context, int) ([]byte, error)) *RoundSession {
-
+func NewRoundSession(caller Caller, receiver Receiver, getPlayerName GetPlayerName) *RoundSession {
 	return &RoundSession{
-		Caller:   caller,
-		Receiver: receiver,
+		Caller:        caller,
+		Receiver:      receiver,
+		GetPlayerName: getPlayerName,
 	}
 }
 

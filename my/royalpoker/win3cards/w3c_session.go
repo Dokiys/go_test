@@ -9,6 +9,9 @@ import (
 
 const baseRound = 3
 
+type Caller func(ctx context.Context, id int, msg []byte) error
+type Receiver func(ctx context.Context, id int) ([]byte, error)
+type GetPlayerName func(id int) string
 type W3cSession struct {
 	Players      []int // 玩家id
 	Poker        *Win3Cards
@@ -18,13 +21,14 @@ type W3cSession struct {
 	ReadyInfo    map[int]bool // 准备信息， 全部准备表示已经开局
 	RoundSession *RoundSession
 
-	Caller   func(ctx context.Context, id int, msg []byte) error // 向Player发送消息
-	Receiver func(ctx context.Context, id int) ([]byte, error)   // 向Player发送消息
-	l        sync.Mutex
+	Caller        Caller        // 向Player发送消息
+	Receiver      Receiver      // 向Player发送消息
+	GetPlayerName GetPlayerName // 获取用户名称
+	l             sync.Mutex
 }
 
-func NewW3CSession(caller func(context.Context, int, []byte) error, receiver func(context.Context, int) ([]byte, error)) *W3cSession {
-	return &W3cSession{Caller: caller, Receiver: receiver}
+func NewW3CSession(caller Caller, receiver Receiver, getPlayerName GetPlayerName) *W3cSession {
+	return &W3cSession{Caller: caller, Receiver: receiver, GetPlayerName: getPlayerName}
 }
 
 func (self *W3cSession) init(players []int) error {
@@ -47,7 +51,7 @@ func (self *W3cSession) init(players []int) error {
 		// TODO[Dokiy] 2022/1/28: 更改初始化状态
 		self.ReadyInfo[id] = false
 	}
-	self.RoundSession = NewRoundSession(players, self.Caller, self.Receiver)
+	self.RoundSession = NewRoundSession(self.Caller, self.Receiver, self.GetPlayerName)
 	return nil
 }
 

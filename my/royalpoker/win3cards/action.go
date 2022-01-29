@@ -113,8 +113,7 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 // ==========================================
 
 func (self *Action) genPLog(rs *RoundSession) (plog string) {
-	// TODO[Dokiy] 2022/1/30:
-	plog = fmt.Sprintf("[%d]号玩家", rs.current+1)
+	plog = fmt.Sprintf("玩家[%d]", rs.GetPlayerName(rs.Players[rs.current]))
 	switch self.ActionType {
 	case ACTION_IN:
 		plog = fmt.Sprintf("%s【跟注】：【%d】", plog, self.Bet)

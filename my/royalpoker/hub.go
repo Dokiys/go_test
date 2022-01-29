@@ -49,7 +49,7 @@ func NewHub(owner int) *Hub {
 		}
 	}()
 	hub.ctx = ctx
-	hub.playSession = win3cards.NewW3CSession(hub.callPlayer, hub.receivePlayer)
+	hub.playSession = win3cards.NewW3CSession(hub.callPlayer, hub.receivePlayer, hub.getPlayerName)
 
 	hubMap[id] = hub
 	go func() {
@@ -170,4 +170,12 @@ func (self *Hub) receivePlayer(ctx context.Context, id int) ([]byte, error) {
 		return nil, errors.New(fmt.Sprintf("接收数据错误：未找到玩家[%d]", id))
 	}
 	return player.Receive(ctx)
+}
+
+func (self *Hub) getPlayerName(id int) string {
+	player, ok := self.Players[id]
+	if !ok {
+		return ""
+	}
+	return player.GetName()
 }
