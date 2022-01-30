@@ -11,7 +11,7 @@ type ActionType string
 type Action struct {
 	ActionType ActionType `json:"action_type"`
 	Bet        int        `json:"bet"`
-	ShowIndex  int        `json:"show_index"` // 被开牌玩家的顺序 1开始计算
+	ShowId     int        `json:"show_id"` // 被开牌玩家的顺序 1开始计算
 }
 
 const (
@@ -53,18 +53,18 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 	case ACTION_VIEW:
 		rs.currentPInfo().IsViewed = true
-		handCard := rs.handCards[rs.current]
+		handCard := rs.handCards[rs.currentPlayer()]
 		rs.Caller(ctx, rs.currentPlayer(), GenActionViewMsg(handCard))
 
 	case ACTION_SHOW:
 		rs.l.Lock()
 		defer rs.l.Unlock()
 
-		if rs.current == self.ShowIndex {
+		if rs.currentPlayer() == self.ShowId {
 			return errors.New("不能开自己的牌！")
 		}
 
-		pInfo1, pInfo2 := rs.currentPInfo(), rs.getPInfoByIndex(self.ShowIndex)
+		pInfo1, pInfo2 := rs.currentPInfo(), rs.PInfo[self.ShowId]
 		if pInfo2 == nil {
 			return errors.Errorf("错误：未找到该玩家！")
 		}
@@ -87,17 +87,17 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 
 		// 开牌, 并记录给开牌输家看牌
 		{
-			h1, h2 := rs.handCards[rs.current], rs.handCards[self.ShowIndex]
+			h1, h2 := rs.handCards[rs.currentPlayer()], rs.handCards[self.ShowId]
 			if h2.v == "" {
 				return errors.Errorf("错误：未找到该玩家底牌！")
 			}
 
 			// 开牌者可以看到被开者到牌
-			rs.ViewLog[rs.current] = append(rs.ViewLog[rs.current], self.ShowIndex)
+			rs.ViewLog[rs.currentPlayer()] = append(rs.ViewLog[rs.currentPlayer()], self.ShowId)
 			if Compare(h1, h2) {
 				// 被开牌者如果输了也可以看到开牌者的牌
 				pInfo2.IsOut = true
-				rs.ViewLog[self.ShowIndex] = append(rs.ViewLog[self.ShowIndex], rs.current)
+				rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.currentPlayer())
 			} else {
 				pInfo1.IsOut = true
 				// 如果当前玩家输了，设置下一个玩家
@@ -113,7 +113,7 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 // ==========================================
 
 func (self *Action) genPLog(rs *RoundSession) (plog string) {
-	plog = fmt.Sprintf("玩家[%d]", rs.GetPlayerName(rs.Players[rs.current]))
+	plog = fmt.Sprintf("玩家[%s]", rs.GetPlayerName(rs.Players[rs.current]))
 	switch self.ActionType {
 	case ACTION_IN:
 		plog = fmt.Sprintf("%s【跟注】：【%d】", plog, self.Bet)
@@ -126,9 +126,10 @@ func (self *Action) genPLog(rs *RoundSession) (plog string) {
 		if rs.currentPInfo().IsOut {
 			outId = rs.currentPlayer()
 		} else {
-			outId = self.ShowIndex
+			outId = self.ShowId
 		}
-		plog = fmt.Sprintf("%s【开牌】[%d]号玩家：[%d]号玩家出局", plog, self.ShowIndex+1, outId+1)
+
+		plog = fmt.Sprintf("%s【开牌】玩家[%s]：玩家[%s]出局", plog, rs.GetPlayerName(rs.Players[self.ShowId]), rs.GetPlayerName(outId))
 	}
 
 	return plog

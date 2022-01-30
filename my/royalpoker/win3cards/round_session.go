@@ -12,17 +12,17 @@ const base = 1
 
 type RoundSession struct {
 	Players   []int             // 玩家Id，顺序未玩家开始顺序
-	handCards map[int]HandCard  // 玩家底牌 key index
+	handCards map[int]HandCard  // 玩家底牌 key id
 	MaxBet    int               // 当前轮注码(开牌值计算)
 	PInfo     map[int]*PlayInfo // 本局玩家信息,因为在w3c_session中需要结算，所以key使用playerId
 	PLog      []string          // 回合操作流水
 
-	ViewLog map[int][]int // 看牌记录 key index
+	ViewLog map[int][]int // 看牌记录 key id, ids
 
 	Caller        Caller        // 向Player发送消息
 	Receiver      Receiver      // 从Player接收消息
 	GetPlayerName GetPlayerName // 获取用户名称
-	current       int           // 当前步骤玩家index
+	current       int           // 当前步骤玩家id
 	l             sync.Mutex
 }
 
@@ -32,8 +32,9 @@ type PlayInfo struct {
 	IsOut    bool `json:"is_out"`    // 是否出局
 }
 
-func NewRoundSession(caller Caller, receiver Receiver, getPlayerName GetPlayerName) *RoundSession {
+func NewRoundSession(player []int, caller Caller, receiver Receiver, getPlayerName GetPlayerName) *RoundSession {
 	return &RoundSession{
+		Players:       player,
 		Caller:        caller,
 		Receiver:      receiver,
 		GetPlayerName: getPlayerName,
@@ -49,12 +50,12 @@ func (self *RoundSession) init(poker *Win3Cards, players []int) error {
 	self.current = 0
 	self.MaxBet = base * 2
 
-	for i, id := range players {
+	for _, id := range players {
 		handCard, err := poker.Deal()
 		if err != nil {
 			return errors.Wrapf(err, "发牌错误：")
 		}
-		self.handCards[i] = handCard
+		self.handCards[id] = handCard
 		self.PInfo[id] = &PlayInfo{}
 	}
 
@@ -140,10 +141,11 @@ func (self *RoundSession) blind() {
 	l := len(self.Players)
 	//i := ((self.current + l) - 1) % l
 	self.getPInfoByIndex(self.current).Score += l * base
+	self.PLog = append(self.PLog, fmt.Sprintf("玩家【%s】下庄：%d", self.GetPlayerName(self.currentPlayer()), l*base))
 }
 
 func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
-	go self.BroadcastInfo(ctx, fmt.Sprintf("轮到[%d]号玩家操作", self.current+1))
+	go self.BroadcastInfo(ctx, fmt.Sprintf("轮到玩家[%s]操作", self.GetPlayerName(self.currentPlayer())))
 	data, err := self.Receiver(ctx, self.currentPlayer())
 	if err != nil {
 		return nil, errors.Wrapf(err, "接收操作失败！")
@@ -164,19 +166,19 @@ func (self *RoundSession) next() (ok bool) {
 }
 
 func (self *RoundSession) showdown(ctx context.Context, showWinner bool) {
-	for index, playerIndexs := range self.ViewLog {
-		handCards := make(map[int]HandCard, len(playerIndexs)+2)
-		for _, playerIndex := range playerIndexs {
-			handCards[playerIndex] = self.handCards[playerIndex]
-		}
-
-		// 看自己的牌
-		handCards[index] = self.handCards[index]
+	for _, id := range self.Players {
+		handCards := make(map[int]HandCard, 1)
+		handCards[id] = self.handCards[id]
 		// 看赢家的牌
 		if showWinner {
-			handCards[self.current] = self.handCards[self.current]
+			handCards[self.currentPlayer()] = self.handCards[self.currentPlayer()]
 		}
-		go self.Caller(ctx, self.Players[index], GenViewLogMsg(handCards))
+		if playerIds, ok := self.ViewLog[id]; ok {
+			for _, playerId := range playerIds {
+				handCards[playerId] = self.handCards[playerId]
+			}
+		}
+		go self.Caller(ctx, id, GenViewLogMsg(self.currentPlayer(), handCards))
 	}
 }
 

@@ -157,7 +157,7 @@ func (self *handler) joinHub(c *gin.Context) {
 	if player, ok := hub.Players[user.Id]; ok {
 		player.SetConn(c, ws)
 		hub.BroadcastHubSession(c, fmt.Sprintf("玩家【%s】正在重连游戏", user.Name))
-		hub.InfoPlayerPlaySession(c, player.GetId())
+		hub.InfoPlayerRelinkSession(c, player.GetId())
 		return
 	}
 	player := NewPlayerWs(ws, user.Id, user.Name)
@@ -223,6 +223,7 @@ func (self *handler) startHub(c *gin.Context) {
 			if err != nil {
 				hub.BroadcastHubSession(c, err.Error())
 			}
+			hub.Close(false)
 		}()
 
 		return nil, nil

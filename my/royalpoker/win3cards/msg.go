@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	MSGTYPE_INFO          = "INFO"
-	MSGTYPE_ROUND_SESSION = "ROUND_SESSION"
-	MSGTYPE_ACTION_VIEW   = "ACTION_VIEW"
-	MSGTYPE_VIEW_LOG      = "VIEW_LOG"
-	MSGTYPE_SEQ           = "SEQ"
-	MSGTYPE_W3C_SESSION   = "W3C_SESSION"
-	MSGTYPE_W3C_RESULT    = "W3C_RESULT"
+	MSGTYPE_INFO           = "INFO"
+	MSGTYPE_ROUND_SESSION  = "ROUND_SESSION"
+	MSGTYPE_ACTION_VIEW    = "ACTION_VIEW"
+	MSGTYPE_VIEW_LOG       = "VIEW_LOG"
+	MSGTYPE_SEQ            = "SEQ"
+	MSGTYPE_W3C_SESSION    = "W3C_SESSION"
+	MSGTYPE_W3C_RESULT     = "W3C_RESULT"
+	MSGTYPE_RELINK_SESSION = "RELINK_SESSION"
 )
 
 type MsgType string
@@ -48,10 +49,17 @@ type RoundSessionMsg struct {
 }
 
 type RoundSessionData struct {
-	PInfo         map[int]*PlayInfo `json:"pinfo_index"` // 本局玩家信息 key id
-	PLog          []string          `json:"plog"`        // 回合操作流水
-	MaxBet        int               `json:"max_bet"`     // 当前轮注码(开牌值计算)
-	CurrentPlayer int               `json:"current_player"`	// id
+	PInfo         map[int]*PlayInfo `json:"pinfo"`          // 本局玩家信息 key id
+	PLog          []string          `json:"plog"`           // 回合操作流水
+	MaxBet        int               `json:"max_bet"`        // 当前轮注码(开牌值计算)
+	CurrentPlayer int               `json:"current_player"` // id
+}
+
+type RelinkSessionMsg struct {
+	Type     MsgType           `json:"type"`
+	W3cData  W3cSessionMsgData `json:"w3c_data"`
+	RsData   RoundSessionData  `json:"rs_data"`
+	HandCard HandCard          `json:"hand_card"`
 }
 
 type ActionViewMsg struct {
@@ -70,6 +78,7 @@ type ViewLogMsg struct {
 
 type ViewLogData struct {
 	HandCards map[int]HandCard `json:"hand_cards"`
+	Winner    int              `json:"winner"`
 }
 
 // =========================================================
@@ -151,10 +160,39 @@ func GenRoundSessionMsg(rs *RoundSession) []byte {
 	return bytes
 }
 
-func GenViewLogMsg(handCards map[int]HandCard) []byte {
+func GenRelinkSessionMsg(ws *W3cSession, id int) []byte {
+	var handCard HandCard
+	if ws.RoundSession.MaxBet != 0 && ws.RoundSession.PInfo[id].IsViewed {
+		handCard = ws.RoundSession.handCards[id]
+	}
+	rlinkMsg := RelinkSessionMsg{
+		Type: MSGTYPE_RELINK_SESSION,
+		W3cData: W3cSessionMsgData{
+			ScoreMap:  ws.ScoreMap,
+			Round:     ws.Round,
+			ReadyInfo: ws.ReadyInfo,
+			Seq:       ws.Players,
+		},
+		RsData: RoundSessionData{
+			PInfo:         ws.RoundSession.PInfo,
+			PLog:          ws.RoundSession.PLog,
+			MaxBet:        ws.RoundSession.MaxBet,
+			CurrentPlayer: ws.RoundSession.Players[ws.RoundSession.current],
+		},
+		HandCard: handCard,
+	}
+	bytes, err := json.Marshal(rlinkMsg)
+	if err != nil {
+		logrus.Errorf("序列化RoundSessionMsg失败: ", err.Error())
+	}
+	return bytes
+}
+
+func GenViewLogMsg(winner int, handCards map[int]HandCard) []byte {
 	vlMsg := ViewLogMsg{
 		Type: MSGTYPE_VIEW_LOG,
 		Data: ViewLogData{
+			Winner:    winner,
 			HandCards: handCards,
 		},
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"log"
 	"sync"
 )
 
@@ -44,10 +45,8 @@ func NewPlayerWs(conn *websocket.Conn, id int, name string) *PlayerWs {
 		player.close <- struct{}{}
 		return nil
 	})
-	go player.startSend()
-	go player.startReceive()
-	go player.startClose()
 
+	go player.startWatch()
 	return player
 }
 
@@ -91,10 +90,8 @@ func (self *PlayerWs) Close(ctx context.Context) {
 }
 
 func (self *PlayerWs) SetConn(ctx context.Context, conn *websocket.Conn) {
-	//self.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1000, "关闭连接"))
 	self.conn.Close()
 	self.conn = conn
-	self.startWatch()
 }
 
 // ============================================
@@ -131,8 +128,12 @@ func (self *PlayerWs) startReceive() {
 		default:
 			_, msg, err := self.conn.ReadMessage()
 			if err != nil {
-				logrus.Errorf("主动接收玩家消息错误：%s", err.Error())
-				return
+				if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("websocket关闭: %v", err)
+					return
+				} else{
+					logrus.Errorf("主动接收玩家消息错误：%s", err.Error())
+				}
 			}
 			if !self.isWaiting {
 				continue

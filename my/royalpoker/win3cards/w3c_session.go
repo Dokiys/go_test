@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sync"
+	"time"
 )
 
 const baseRound = 3
@@ -51,7 +52,7 @@ func (self *W3cSession) init(players []int) error {
 		// TODO[Dokiy] 2022/1/28: 更改初始化状态
 		self.ReadyInfo[id] = false
 	}
-	self.RoundSession = NewRoundSession(self.Caller, self.Receiver, self.GetPlayerName)
+	self.RoundSession = NewRoundSession(self.Players, self.Caller, self.Receiver, self.GetPlayerName)
 	return nil
 }
 
@@ -82,6 +83,7 @@ func (self *W3cSession) Run(ctx context.Context, players []int) error {
 	}
 
 	// 结束信息
+	time.Sleep(1*time.Second)
 	self.BroadcastResult(ctx)
 	return nil
 }
@@ -166,16 +168,7 @@ func (self *W3cSession) BroadcastSession(ctx context.Context) {
 }
 
 func (self *W3cSession) InfoPlayerSession(ctx context.Context, id int) {
-	data := GenW3cSessionMsg(self)
-	self.Caller(ctx, id, data)
-
-	//for _, info := range self.ReadyInfo {
-	//	if !info {
-	//		return
-	//	}
-	//}
-
-	data = GenRoundSessionMsg(self.RoundSession)
+	data := GenRelinkSessionMsg(self, id)
 	self.Caller(ctx, id, data)
 }
 

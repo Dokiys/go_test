@@ -1,15 +1,15 @@
 package win3cards
 
 type HandCard struct {
-	Cards [3]int
-	v string
+	Cards [3]int `json:"cards"`
+	v     string `json:"v"`
 }
 
 func (self HandCard) Version() string {
 	return self.v
 }
 
-func Compare(h1 HandCard,h2 HandCard) bool {
+func Compare(h1 HandCard, h2 HandCard) bool {
 	return h1.Score() > h2.Score()
 }
 
@@ -27,7 +27,7 @@ func (self HandCard) Score() (score int) {
 	} else {
 		score = 0
 	}
-	return (score+self.baseScore())*10
+	return (score + self.baseScore()) * 10
 }
 
 func (self HandCard) baseScore() int {

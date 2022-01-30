@@ -47,50 +47,75 @@
 
         <div v-else-if="showDiv == 'hub'">
             <div class="w3c_session">
-                <p>房间号：${hub.id}
+                <div>房间号：${hub.id}
                     <button id="outButton" style="margin-left: 30px" v-if="!w3c.is_start" v-on:click='outButton()'>
                         退出房间
                     </button>
-                </p>
-                <p v-if="!w3c.is_start">房间玩家：
+                </div>
+                <div v-if="!w3c.is_start">房间玩家：
                     <span id="hubPlayerList" v-for="player in hub.players" :key="player.id">【${player.name}】 </span>
-                </p>
+                </div>
+                <div v-if="w3c.is_start">玩家积分：
+                    <span v-for="player in hub.players"
+                          :key="player.id">【${player.name}】${w3c.score_map[player.id]} </span>
+                </div>
 
                 <p>
-                    <button id="startButton" v-if="!w3c.is_start" v-on:click='startButton()'>开始游戏</button>
+                    <button id="startButton" v-if="!w3c.is_start&user.id==hub.owner" v-on:click='startButton()'>开始游戏
+                    </button>
                 </p>
-                <!--            <button id="outButton" v-on:click='outButton()'>跟</button>-->
-                <!--            <button id="outButton" v-on:click='outButton()'>看牌</button>-->
-                <!--            <button id="outButton" v-on:click='outButton()'>开</button>-->
 
             </div>
             <div class="play_session" v-if="w3c.is_start">
                 <div id="rs_head">
                     <div>第【${w3c.round}/${w3c.list_seq.length*3}】回合</div>
-                    <div v-if="w3c.is_playing">当前操作玩家:【${hub.players[round_session.current_player].name}】</div>
-                    <div v-if="w3c.is_playing">当前注码:【${round_session.max_bet}】</div>
-                </div>
-                <div class="play_list_plog">
                     <div>
-                        <div>
-                            <p>玩家列表: </p>
-                            <div id="rs_player_list" v-for="id in w3c.list_seq" :key="id">
-                                <span>【${hub.players[id].name}】${!w3c.is_playing&w3c.ready_info[id]?'(已准备)':''}:${round_session[id]}</span>
+                        <button id="readyButton" v-on:click='readyButton()' v-if="!w3c.ready_info[user.id]">准备
+                        </button>
+                        <div/>
+                        <span v-if="w3c.is_playing">当前操作玩家:【${hub.players[round_session.current_player].name}】</span>
+                        <span v-if="w3c.is_playing">当前注码:【${round_session.max_bet}】</span>
+                        <p></p>
+                    </div>
+                    <div class="play_list_plog">
+                        <div style="border-style:solid;">
+                            <div style="margin:10px 10px">
+                                <span>玩家列表: </span>
+                                <div id="rs_player_list" v-for="id in w3c.list_seq" :key="id">
+                                    <p>${list_play_info(id)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="border-style:solid;border-left-style:none;">
+                            <div style="margin:10px 10px">
+                                <span>操作记录: </span>
+                                <p v-for="log in round_session.plog">${log}</p>
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <td valign="top" width="50%">
-                            <p>操作记录: </p>
-                            <div id="plog" style="max-height: 70vh;overflow-y: scroll;"></div>
-                        </td>
+                    <div id="rs_operation" v-if="w3c.is_playing">
+                        <p v-if='w3c.is_playing&round_session.current_player==user.id&!round_session.pinfo[user.id].is_out'>
+                            <input id="inInput" type="number" placeholder="请输入注码">
+                            <button id="inButton" v-on:click='inButton()'>跟注
+                            </button>
+                        </p>
+                        <p v-if='w3c.is_playing&round_session.current_player==user.id&!round_session.pinfo[user.id].is_out'>
+                            <button id="viewButton" v-if="!round_session.pinfo[user.id].is_viewed"
+                                    v-on:click='viewButton()'>看牌
+                            </button>
+                            <span v-if="round_session.pinfo[user.id].is_viewed">你的手牌是：
+                                <span v-for="card in user.hand_card.cards">[${cardName[card]}] </span></span>
+                        </p>
+                        <p v-if='w3c.is_playing&round_session.current_player==user.id&!round_session.pinfo[user.id].is_out'>
+                            <select id="showInput">
+                                <option id="showSelectOption" v-for="id in currentPlayerList" value="id">
+                                    ${hub.players[id].name}
+                                </option>
+                            </select>
+                            <button id="showButton" v-on:click='showButton()'>开牌
+                            </button>
+                        </p>
                     </div>
-                </div>
-                <div id="rs_operation">
-                    <p>
-                        <button id="readyButton" v-on:click='readyButton()' v-if="!w3c.ready_info[user.id]">准备
-                        </button>
-                    </p>
                 </div>
             </div>
         </div>
@@ -101,6 +126,63 @@
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 <!--<script src="https://localhost:8080/static/app.js"></script>-->
 <script>
+    const cardName = {
+        2: '黑桃2',
+        3: '黑桃3',
+        4: '黑桃4',
+        5: '黑桃5',
+        6: '黑桃6',
+        7: '黑桃7',
+        8: '黑桃8',
+        9: '黑桃9',
+        10: '黑桃10',
+        11: '黑桃J',
+        12: '黑桃Q',
+        13: '黑桃K',
+        14: '黑桃A',
+
+        102: '红桃2',
+        103: '红桃3',
+        104: '红桃4',
+        105: '红桃5',
+        106: '红桃6',
+        107: '红桃7',
+        108: '红桃8',
+        109: '红桃9',
+        110: '红桃10',
+        111: '红桃J',
+        112: '红桃Q',
+        113: '红桃K',
+        114: '红桃A',
+
+        202: '梅花2',
+        203: '梅花3',
+        204: '梅花4',
+        205: '梅花5',
+        206: '梅花6',
+        207: '梅花7',
+        208: '梅花8',
+        209: '梅花9',
+        210: '梅花10',
+        211: '梅花J',
+        212: '梅花Q',
+        213: '梅花K',
+        214: '梅花A',
+
+        302: '方片2',
+        303: '方片3',
+        304: '方片4',
+        305: '方片5',
+        306: '方片6',
+        307: '方片7',
+        308: '方片8',
+        309: '方片9',
+        310: '方片10',
+        311: '方片J',
+        312: '方片Q',
+        313: '方片K',
+        314: '方片A',
+    }
     var token = localStorage.getItem('token');
     var app = new Vue({
         el: "#app",
@@ -109,13 +191,19 @@
             return {
                 wsGloble: {},
                 showDiv: 'wait',
-                user: {},
+                user: {
+                    id: 0,
+                    name: '',
+                    hand_card: {
+                        cards: [],
+                    },
+                },
                 hub: {
                     id: 0,
                     owner: 0,
                     players: {},
 
-                    showDiv: 'wait',
+                    // showDiv: 'wait',
                 },
                 w3c: {
                     round: 0,
@@ -126,12 +214,31 @@
                     list_seq: [],
                 },
                 round_session: {
-                    pinfo_index: {},
+                    pinfo: {},
                     plog: [],
                     max_bet: 0,
                     current_player: 0,
                     play_seq: [],
                 }
+            }
+        },
+        computed: {
+            currentPlayerList: () => {
+                console.log(app)
+                if (!!!app.w3c.list_seq) {
+                    return
+                }
+                let list = []
+                for (const i in app.w3c.list_seq) {
+                    let id = app.w3c.list_seq[i]
+                    let info = app.round_session.pinfo[id]
+                    console.log('info:', info)
+                    if (!!info && !info.is_out && id !== app.user.id) {
+                        list.push(id)
+                    }
+                }
+                console.log(list)
+                return list
             }
         },
         created: () => {
@@ -154,8 +261,7 @@
                         app.hub.id = res.data.hub_id
                         if (app.hub.id !== 0) {
                             joinButton(app.hub.id)
-                            app.showDiv = 'hub'
-                            app.hub.showDiv = 'ready'
+                            // app.showDiv = 'hub'
                         } else {
                             app.showDiv = 'index'
                         }
@@ -164,6 +270,22 @@
             }
         }
     });
+
+    list_play_info = (id) => {
+        if (Object.keys(app.hub.players).length <= 0) {
+            return ''
+        }
+        let name = '【' + app.hub.players[id].name + '】:'
+        if (!app.w3c.is_playing) {
+            name += app.w3c.ready_info[id] ? '(已准备)' : ''
+        }
+        if (app.round_session.pinfo != null && app.w3c.is_playing) {
+            name += '本轮投出[' + app.round_session.pinfo[id].score + ']'
+            name += app.round_session.pinfo[id].is_viewed ? '(已看牌)' : ''
+            name += app.round_session.pinfo[id].is_out ? '(已出局)' : ''
+        }
+        return name
+    }
 
     // 登录
     loginButton = (event) => {
@@ -216,8 +338,7 @@
 
                 app.hub.id = res.data.id
                 joinButton(res.data.id)
-                app.showDiv = 'hub'
-                app.hub.showDiv = 'ready'
+                app.showDiv = 'wait'
             }
         });
     }
@@ -232,7 +353,12 @@
         };
         //连接关闭时触发
         ws.onclose = function (evt) {
-            alert("连接关闭：", evt.reason)
+            alert("与房间连接关闭：", evt.reason)
+            let user
+            user = app.user
+            Object.assign(app.$data,app.$options.data())
+            app.user = user
+            app.showDiv = 'index'
         };
 
         app.wsGloble = ws
@@ -298,7 +424,46 @@
         var msg = JSON.stringify({action_type: 'W3C_ACTION_READY'})
         app.wsGloble.send(msg)
     }
+    // 看牌
+    viewButton = () => {
+        if (app.wsGloble === undefined) {
+            alert("连接错误！")
+            return
+        }
 
+        var msg = JSON.stringify({action_type: 'ACTION_VIEW'})
+        app.wsGloble.send(msg)
+    }
+    // 跟注
+    inButton = () => {
+        if (app.wsGloble === undefined) {
+            alert("连接错误！")
+            return
+        }
+        let inbet = $("#inInput").val();
+        let base = 2;
+        if (app.round_session.pinfo[app.user.id].is_viewed) {
+            base = 1
+        }
+        if (inbet * base < app.round_session.max_bet) {
+            alert("必须要大于当前注码")
+            return
+        }
+
+        var msg = JSON.stringify({action_type: 'ACTION_IN', bet: parseInt(inbet, 10)})
+        app.wsGloble.send(msg)
+    }
+    //开牌
+    showButton = () => {
+        if (app.wsGloble === undefined) {
+            alert("连接错误！")
+            return
+        }
+        let showId = $("#showSelectOption").val();
+
+        var msg = JSON.stringify({action_type: 'ACTION_SHOW', show_id: showId})
+        app.wsGloble.send(msg)
+    }
     handleMsg = (msg) => {
         let msgData = JSON.parse(msg);
         let data = msgData.data
@@ -307,33 +472,98 @@
                 app.hub.owner = data.owner;
                 app.hub.players = data.players;
                 alertMsg(msgData.msg)
+                app.showDiv = 'hub'
+                app.hub.showDiv = 'ready'
                 break
             case "W3C_SESSION":
                 app.w3c.round = data.round;
                 app.w3c.ready_info = data.ready_info;
                 app.w3c.score_map = data.score_map;
                 app.w3c.list_seq = data.seq;
+
                 app.w3c.is_start = true
-                app.w3c.is_playing = true
-                for (let id in data.ready_info) {
-                    if (!data.ready_info[id]) {
+                let i2 = 0
+                for (const info in data.ready_info) {
+                    i2++
+                    if (!data.ready_info[info]) {
                         app.w3c.is_playing = false
                         break
+                    }
+                    if (i2 === Object.keys(data.ready_info).length) {
+                        app.w3c.is_playing = true
                     }
                 }
                 break
             case "ROUND_SESSION":
-                app.round_session.pinfo_index = data.pinfo_index;
+                app.round_session.pinfo = data.pinfo;
                 app.round_session.plog = data.plog;
                 app.round_session.max_bet = data.max_bet;
                 app.round_session.current_player = data.current_player;
                 app.round_session.play_seq = data.seq;
                 break
+            case "RELINK_SESSION":
+                app.w3c.round = msgData.w3c_data.round;
+                app.w3c.ready_info = msgData.w3c_data.ready_info;
+                app.w3c.score_map = msgData.w3c_data.score_map;
+                app.w3c.list_seq = msgData.w3c_data.seq;
+
+                app.round_session.pinfo = msgData.rs_data.pinfo;
+                app.round_session.plog = msgData.rs_data.plog;
+                app.round_session.max_bet = msgData.rs_data.max_bet;
+                app.round_session.current_player = msgData.rs_data.current_player;
+                app.round_session.play_seq = msgData.rs_data.seq;
+
+                app.user.hand_card = msgData.hand_card
+
+                app.w3c.is_start = true
+
+                let i = 0
+                for (const info in msgData.w3c_data.ready_info) {
+                    i++
+                    if (!msgData.w3c_data.ready_info[info]) {
+                        app.w3c.is_playing = false
+                        break
+                    }
+                    if (i === Object.keys(msgData.w3c_data.ready_info).length) {
+                        app.w3c.is_playing = true
+                    }
+                }
+                break
             case "INFO":
                 alertMsg(msgData.msg)
                 break
+            case "ACTION_VIEW":
+                app.user.hand_card = data.hand_card
+                break
+            case "VIEW_LOG":
+                let view_log_msg = '本局结束！Winner【' + app.hub.players[data.winner].name + '】\n'
+                view_log_msg += '可查看的玩家底牌：\n'
+                for (let id in data.hand_cards) {
+                    if (id === data.winner) {
+                        continue
+                    }
+                    let cards = data.hand_cards[id].cards
+                    view_log_msg += '【' + app.hub.players[id].name + '】:' + cardName[cards[0]] + ',' + cardName[cards[1]] + ',' + cardName[cards[2]]
+                    view_log_msg += '\n'
+                }
+                confirm(view_log_msg)
+                break
+            case "W3C_RESULT":
+                let w3c_msg = '游戏结束！\n'
+                for (let id in data.score_map) {
+                    w3c_msg += app.hub.players[id].name + ": " +data.score_map[id] + "\n"
+                }
+                confirm(w3c_msg)
+                // todo
+                app.wsGloble.close()
+                let user = {}
+                user = app.user
+                Object.assign(app.$data,app.$options.data())
+                app.user = user
+                app.showDiv = 'index'
+                break
         }
-        console.log(app.hub)
+        console.log(app)
     }
 
     alertMsg = (msg) => {
