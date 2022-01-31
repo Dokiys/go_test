@@ -33,7 +33,14 @@ func init() {
 		Password: "123",
 		IsAdmin:  true,
 	}
+	userMap[1] = &User{
+		Id:       1,
+		Name:     "lisi",
+		Password: "123",
+		IsAdmin:  false,
+	}
 	userNameMap["zhangsan"] = 999
+	userNameMap["lisi"] = 1
 
 	userHubMap = make(map[int]int)
 }

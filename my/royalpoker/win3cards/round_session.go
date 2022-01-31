@@ -32,9 +32,8 @@ type PlayInfo struct {
 	IsOut    bool `json:"is_out"`    // 是否出局
 }
 
-func NewRoundSession(player []int, caller Caller, receiver Receiver, getPlayerName GetPlayerName) *RoundSession {
+func NewRoundSession(caller Caller, receiver Receiver, getPlayerName GetPlayerName) *RoundSession {
 	return &RoundSession{
-		Players:       player,
 		Caller:        caller,
 		Receiver:      receiver,
 		GetPlayerName: getPlayerName,
@@ -44,6 +43,7 @@ func NewRoundSession(player []int, caller Caller, receiver Receiver, getPlayerNa
 func (self *RoundSession) init(poker *Win3Cards, players []int) error {
 	l := len(players)
 	self.handCards = make(map[int]HandCard, l)
+	self.Players = players
 	self.PInfo = make(map[int]*PlayInfo, l)
 	self.PLog = make([]string, 0)
 	self.ViewLog = make(map[int][]int, l)
@@ -139,9 +139,9 @@ func (self *RoundSession) blind() {
 	defer self.l.Unlock()
 
 	l := len(self.Players)
-	//i := ((self.current + l) - 1) % l
-	self.getPInfoByIndex(self.current).Score += l * base
-	self.PLog = append(self.PLog, fmt.Sprintf("玩家【%s】下庄：%d", self.GetPlayerName(self.currentPlayer()), l*base))
+	i := (self.current+1) % l
+	self.getPInfoByIndex(i).Score += l * base
+	self.PLog = append(self.PLog, fmt.Sprintf("玩家[%s]下庄：【%d】", self.GetPlayerName(self.Players[i]), l*base))
 }
 
 func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
@@ -154,14 +154,20 @@ func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
 }
 
 func (self *RoundSession) next() (ok bool) {
-	for i := 1; i < len(self.Players); i++ {
-		index := (self.current + i) % len(self.Players)
+	var flag bool
+	c:= self.current
+
+	for i := 1; i < len(self.Players)+1; i++ {
+		index := (c + i) % len(self.Players)
 		if info := self.getPInfoByIndex(index); !info.IsOut {
-			self.current = index
+			if !flag {
+				flag = true
+				self.current = index
+				continue
+			}
 			return true
 		}
 	}
-
 	return false
 }
 

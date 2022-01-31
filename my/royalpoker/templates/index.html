@@ -48,7 +48,7 @@
         <div v-else-if="showDiv == 'hub'">
             <div class="w3c_session">
                 <div>房间号：${hub.id}
-                    <button id="outButton" style="margin-left: 30px" v-if="!w3c.is_start" v-on:click='outButton()'>
+                    <button id="outhubButton" style="margin-left: 30px" v-if="!w3c.is_start" v-on:click='outhubButton()'>
                         退出房间
                     </button>
                 </div>
@@ -108,11 +108,15 @@
                         </p>
                         <p v-if='w3c.is_playing&round_session.current_player==user.id&!round_session.pinfo[user.id].is_out'>
                             <select id="showInput">
-                                <option id="showSelectOption" v-for="id in currentPlayerList" value="id">
+                                <option id="showSelectOption" v-for="id in currentPlayerList" :value="id">
                                     ${hub.players[id].name}
                                 </option>
                             </select>
                             <button id="showButton" v-on:click='showButton()'>开牌
+                            </button>
+                        </p>
+                        <p v-if='w3c.is_playing&round_session.current_player==user.id&!round_session.pinfo[user.id].is_out'>
+                            <button v-on:click='outButton()'>弃牌
                             </button>
                         </p>
                     </div>
@@ -190,7 +194,7 @@
         data() {
             return {
                 wsGloble: {},
-                showDiv: 'wait',
+                showDiv: 'login',
                 user: {
                     id: 0,
                     name: '',
@@ -224,7 +228,6 @@
         },
         computed: {
             currentPlayerList: () => {
-                console.log(app)
                 if (!!!app.w3c.list_seq) {
                     return
                 }
@@ -237,7 +240,7 @@
                         list.push(id)
                     }
                 }
-                console.log(list)
+                console.log('list:',list)
                 return list
             }
         },
@@ -353,7 +356,6 @@
         };
         //连接关闭时触发
         ws.onclose = function (evt) {
-            alert("与房间连接关闭：", evt.reason)
             let user
             user = app.user
             Object.assign(app.$data,app.$options.data())
@@ -364,7 +366,7 @@
         app.wsGloble = ws
     }
     // 退出房间
-    outButton = (event) => {
+    outhubButton = (event) => {
         $.ajax({
             url: 'http://localhost:8080/hub/out',
             type: 'POST',
@@ -394,8 +396,11 @@
     // 开始游戏
     startButton = (event) => {
         if (app.user.id !== app.hub.owner) {
-            // todo[dokiy]: 测试
             alert("只有房主才能开始游戏！")
+        }
+        if (Object.keys(app.hub.players).length <= 1) {
+            alert("人数不够无法开始游戏")
+            return
         }
         let data = {id: app.hub.id}
         $.ajax({
@@ -460,8 +465,22 @@
             return
         }
         let showId = $("#showSelectOption").val();
+        let base = 2;
+        if (app.round_session.pinfo[app.user.id].is_viewed) {
+            base = 1
+        }
+        let max_bet = Math.ceil(app.round_session.max_bet/base);
 
-        var msg = JSON.stringify({action_type: 'ACTION_SHOW', show_id: showId})
+        var msg = JSON.stringify({action_type: 'ACTION_SHOW', show_id: parseInt(showId, 10), bet: max_bet})
+        app.wsGloble.send(msg)
+    }
+    // 跟注
+    outButton = () => {
+        if (app.wsGloble === undefined) {
+            alert("连接错误！")
+            return
+        }
+        var msg = JSON.stringify({action_type: 'ACTION_OUT'})
         app.wsGloble.send(msg)
     }
     handleMsg = (msg) => {
@@ -473,7 +492,6 @@
                 app.hub.players = data.players;
                 alertMsg(msgData.msg)
                 app.showDiv = 'hub'
-                app.hub.showDiv = 'ready'
                 break
             case "W3C_SESSION":
                 app.w3c.round = data.round;
@@ -554,7 +572,6 @@
                     w3c_msg += app.hub.players[id].name + ": " +data.score_map[id] + "\n"
                 }
                 confirm(w3c_msg)
-                // todo
                 app.wsGloble.close()
                 let user = {}
                 user = app.user

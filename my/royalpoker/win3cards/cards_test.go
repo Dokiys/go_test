@@ -21,7 +21,7 @@ func TestScore(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		assert.Equal(t, c.except, c.hc.score(), i+1)
+		assert.Equal(t, c.except, c.hc.Score(), i+1)
 	}
 
 }

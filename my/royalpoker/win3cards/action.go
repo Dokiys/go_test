@@ -100,8 +100,7 @@ func (self Action) do(ctx context.Context, rs *RoundSession) error {
 				rs.ViewLog[self.ShowId] = append(rs.ViewLog[self.ShowId], rs.currentPlayer())
 			} else {
 				pInfo1.IsOut = true
-				// 如果当前玩家输了，设置下一个玩家
-				rs.next()
+				//如果当前玩家输了，设置下一个玩家
 			}
 		}
 	}
@@ -129,7 +128,7 @@ func (self *Action) genPLog(rs *RoundSession) (plog string) {
 			outId = self.ShowId
 		}
 
-		plog = fmt.Sprintf("%s【开牌】玩家[%s]：玩家[%s]出局", plog, rs.GetPlayerName(rs.Players[self.ShowId]), rs.GetPlayerName(outId))
+		plog = fmt.Sprintf("%s【开牌】玩家[%s]：玩家[%s]出局", plog, rs.GetPlayerName(self.ShowId), rs.GetPlayerName(outId))
 	}
 
 	return plog

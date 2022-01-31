@@ -118,14 +118,11 @@ func (self *Hub) Start() error {
 		return errors.Wrapf(err, "开局失败")
 	}
 
+	self.IsStarted = false
 	for id, _ := range self.Players {
 		delete(userHubMap, id)
 	}
-	// 等待一会儿，让消息发送完成
-	time.Sleep(3 * time.Second)
-	for _, player := range self.Players {
-		go player.Close(self.ctx)
-	}
+
 	return nil
 }
 

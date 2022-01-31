@@ -35,10 +35,9 @@ func NewW3CSession(caller Caller, receiver Receiver, getPlayerName GetPlayerName
 func (self *W3cSession) init(players []int) error {
 	// Init
 	length := len(players)
-	// TODO[Dokiy] 2022/1/28: 添加人数校验
-	//if length <= 1 {
-	//	return errors.New("人数不够开局")
-	//}
+	if length <= 1 {
+		return errors.New("人数不够开局")
+	}
 	self.Players = players
 	self.count = length
 	self.ReadyInfo = make(map[int]bool, length)
@@ -49,10 +48,9 @@ func (self *W3cSession) init(players []int) error {
 	// 开局
 	for _, id := range self.Players {
 		self.ScoreMap[id] = 0
-		// TODO[Dokiy] 2022/1/28: 更改初始化状态
 		self.ReadyInfo[id] = false
 	}
-	self.RoundSession = NewRoundSession(self.Players, self.Caller, self.Receiver, self.GetPlayerName)
+	self.RoundSession = NewRoundSession(self.Caller, self.Receiver, self.GetPlayerName)
 	return nil
 }
 
@@ -127,8 +125,9 @@ func (self *W3cSession) WaitReady(ctx context.Context) {
 func (self *W3cSession) Play(ctx context.Context, round int) (int, error) {
 	l := len(self.Players)
 	players := make([]int, l)
+	j := round%l
 	for i, id := range self.Players {
-		players[(round+i)%l] = id
+		players[(i+j)%l] = id
 	}
 	// 发送位序
 	//self.BroadcastSeq(ctx, players)

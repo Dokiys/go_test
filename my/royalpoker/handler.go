@@ -223,7 +223,7 @@ func (self *handler) startHub(c *gin.Context) {
 			if err != nil {
 				hub.BroadcastHubSession(c, err.Error())
 			}
-			hub.Close(false)
+			hub.Close(true)
 		}()
 
 		return nil, nil
