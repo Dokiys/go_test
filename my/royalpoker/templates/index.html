@@ -459,8 +459,8 @@
             alert("必须要大于当前注码")
             return
         }
-        if (inbet * base > 20) {
-            alert("最大注码为20")
+        if (inbet * base > 10) {
+            alert("最大注码为10")
             return
         }
 
@@ -474,13 +474,11 @@
             return
         }
         let showId = $("#showSelect").val();
-        console.log("showId:", showId)
         let base = 2;
         if (app.round_session.pinfo[app.user.id].is_viewed) {
             base = 1
         }
         let max_bet = Math.ceil(app.round_session.max_bet/base);
-        return
 
         var msg = JSON.stringify({action_type: 'ACTION_SHOW', show_id: parseInt(showId, 10), bet: max_bet})
         app.wsGloble.send(msg)
