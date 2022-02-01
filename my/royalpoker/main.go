@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -65,7 +66,7 @@ func main() {
 	//fe, _ := fs.Sub(FS, "static")
 	//r.StaticFS("templates/static", http.FS(fe))
 
-	r.LoadHTMLGlob("templates/*.html")
+	//r.LoadHTMLGlob("templates/*.html")
 
 	r.GET("/", home)
 	r.POST("/login", handler.login)
@@ -76,7 +77,7 @@ func main() {
 	r.POST("/hub/start", TokenHandle, handler.startHub)
 	r.POST("/hub/closeHub", TokenHandle, handler.closeHub)
 
-	err := r.Run(*addr)
+	err := r.Run(":"+strings.Split(*addr, ":")[1])
 	if err != nil {
 		panic(err)
 	}

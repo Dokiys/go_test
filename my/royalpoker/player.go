@@ -108,12 +108,13 @@ func (self *PlayerWs) startSend() {
 		case msg := <-self.send:
 			sendLock.Lock()
 			err := self.conn.WriteMessage(websocket.TextMessage, msg)
-			sendLock.Unlock()
 			if err != nil {
 				sendLock.Unlock()
 				logrus.Errorf("推送玩家消息[%s]错误：%s", msg, err.Error())
 				return
 			}
+			sendLock.Unlock()
+
 		case <-self.close:
 			return
 		}
