@@ -16,6 +16,7 @@ type RoundSession struct {
 	MaxBet    int               // 当前轮注码(开牌值计算)
 	PInfo     map[int]*PlayInfo // 本局玩家信息,因为在w3c_session中需要结算，所以key使用playerId
 	PLog      []string          // 回合操作流水
+	IsStart   bool				// 是否开局
 
 	ViewLog map[int][]int // 看牌记录 key id, ids
 
@@ -67,6 +68,7 @@ func (self *RoundSession) Run(ctx context.Context, poker *Win3Cards, players []i
 	if err := self.init(poker, players); err != nil {
 		return 0, errors.Wrapf(err, "初始化开局错误：")
 	}
+	self.IsStart = true
 
 	// 庄家下庄
 	self.blind()
@@ -139,7 +141,7 @@ func (self *RoundSession) blind() {
 	defer self.l.Unlock()
 
 	l := len(self.Players)
-	i := (self.current+1) % l
+	i := (self.current + 1) % l
 	self.getPInfoByIndex(i).Score += l * base
 	self.PLog = append(self.PLog, fmt.Sprintf("玩家[%s]下庄：【%d】", self.GetPlayerName(self.Players[i]), l*base))
 }
@@ -155,7 +157,7 @@ func (self *RoundSession) waitAction(ctx context.Context) ([]byte, error) {
 
 func (self *RoundSession) next() (ok bool) {
 	var flag bool
-	c:= self.current
+	c := self.current
 
 	for i := 1; i < len(self.Players)+1; i++ {
 		index := (c + i) % len(self.Players)

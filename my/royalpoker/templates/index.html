@@ -37,10 +37,12 @@
                 <div>
                     <p><input id="joinInput" type="number" placeholder="请输入房间号">
                         <button id="joinButton" v-on:click='joinButton($("#joinInput").val())'>加入房间</button>
+                    </p>
                 </div>
                 <div v-if="user.is_admin">
                     <p><input id="closeInput" type="number" placeholder="请输入房间号">
                         <button id="closeButton" v-on:click='closeButton()'>关闭房间</button>
+                    </p>
                 </div>
             </form>
         </div>
@@ -128,7 +130,7 @@
 </body>
 <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
-<!--<script src="https://localhost:8080/static/app.js"></script>-->
+<!--<script src="https://{{.addr}}/static/app.js"></script>-->
 <script>
     const cardName = {
         2: '黑桃2',
@@ -235,7 +237,6 @@
                 for (const i in app.w3c.list_seq) {
                     let id = app.w3c.list_seq[i]
                     let info = app.round_session.pinfo[id]
-                    console.log('info:', info)
                     if (!!info && !info.is_out && id !== app.user.id) {
                         list.push(id)
                     }
@@ -244,10 +245,10 @@
                 return list
             }
         },
-        created: () => {
+        beforeCreate: () => {
             if (token !== null) {
                 $.ajax({
-                    url: 'http://localhost:8080/login',
+                    url: 'http://{{.addr}}/login',
                     type: 'POST',
                     headers: {'Authorization': token},
                     contentType: 'application/json; charset=utf-8',
@@ -257,6 +258,7 @@
                         if (res.code !== 0) {
                             alert(res.msg)
                             app.showDiv = 'login'
+                            return
                         }
                         app.user.id = res.data.id
                         app.user.name = res.data.username
@@ -296,7 +298,7 @@
         let password = $("#password").val();
         let data = {username: username, password: password}
         $.ajax({
-            url: 'http://localhost:8080/login',
+            url: 'http://{{.addr}}/login',
             type: 'POST',
             data: JSON.stringify(data),
             contentType: 'application/json; charset=utf-8',
@@ -313,6 +315,7 @@
                 app.user.is_admin = res.data.is_admin
                 app.hub.id = res.data.hub_id
 
+                token = res.data.token
                 localStorage.setItem('token', res.data.token);
                 app.showDiv = 'index'
             }
@@ -327,7 +330,7 @@
     // 创建房间
     createButton = (event) => {
         $.ajax({
-            url: 'http://localhost:8080/hub/create',
+            url: 'http://{{.addr}}/hub/create',
             type: 'POST',
             headers: {'Authorization': token},
             contentType: 'application/json; charset=utf-8',
@@ -347,7 +350,7 @@
     }
     // 加入房间
     joinButton = (id) => {
-        wsurl = "ws://localhost:8080/hub/join?hubid=" + id
+        wsurl = "ws://{{.addr}}/hub/join?hubid=" + id
         ws = new WebSocket(wsurl, [token]);
         //接收到消息时触发
         ws.onmessage = function (evt) {
@@ -356,6 +359,9 @@
         };
         //连接关闭时触发
         ws.onclose = function (evt) {
+            if(evt.reason !== ''){
+                alert(evt.reason)
+            }
             let user
             user = app.user
             Object.assign(app.$data,app.$options.data())
@@ -368,7 +374,7 @@
     // 退出房间
     outhubButton = (event) => {
         $.ajax({
-            url: 'http://localhost:8080/hub/out',
+            url: 'http://{{.addr}}/hub/out',
             type: 'POST',
             headers: {'Authorization': token},
             contentType: 'application/json; charset=utf-8',
@@ -404,7 +410,7 @@
         }
         let data = {id: app.hub.id}
         $.ajax({
-            url: 'http://localhost:8080/hub/start',
+            url: 'http://{{.addr}}/hub/start',
             type: 'POST',
             headers: {'Authorization': token},
             data: JSON.stringify(data),

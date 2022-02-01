@@ -162,10 +162,15 @@ func GenRoundSessionMsg(rs *RoundSession) []byte {
 
 func GenRelinkSessionMsg(ws *W3cSession, id int) []byte {
 	var handCard HandCard
-	if ws.RoundSession.MaxBet != 0 && ws.RoundSession.PInfo[id].IsViewed {
-		handCard = ws.RoundSession.handCards[id]
+	var currentPlayer int
+	if ws.RoundSession.IsStart {
+		if ws.RoundSession.PInfo[id].IsViewed {
+			handCard = ws.RoundSession.handCards[id]
+		}
+		currentPlayer = ws.RoundSession.Players[ws.RoundSession.current]
 	}
-	rlinkMsg := RelinkSessionMsg{
+
+	relinkMsg := RelinkSessionMsg{
 		Type: MSGTYPE_RELINK_SESSION,
 		W3cData: W3cSessionMsgData{
 			ScoreMap:  ws.ScoreMap,
@@ -177,13 +182,13 @@ func GenRelinkSessionMsg(ws *W3cSession, id int) []byte {
 			PInfo:         ws.RoundSession.PInfo,
 			PLog:          ws.RoundSession.PLog,
 			MaxBet:        ws.RoundSession.MaxBet,
-			CurrentPlayer: ws.RoundSession.Players[ws.RoundSession.current],
+			CurrentPlayer: currentPlayer,
 		},
 		HandCard: handCard,
 	}
-	bytes, err := json.Marshal(rlinkMsg)
+	bytes, err := json.Marshal(relinkMsg)
 	if err != nil {
-		logrus.Errorf("序列化RoundSessionMsg失败: ", err.Error())
+		logrus.Errorf("序列化RelinkSessionMsg失败: ", err.Error())
 	}
 	return bytes
 }

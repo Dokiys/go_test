@@ -92,6 +92,9 @@ func (self *handler) login(c *gin.Context) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "身份认证失败！")
 		}
+		if _, ok := userMap[decode.Uid]; !ok {
+			return nil, errors.Wrapf(err, "授权信息错误：未找到该用户！")
+		}
 
 		return LoginReply{
 			Token:    token,
@@ -134,7 +137,13 @@ func (self *handler) joinHub(c *gin.Context) {
 	token := c.Request.Header.Get("Sec-WebSocket-Protocol")
 	decode, err := common.Decode(token)
 	if err != nil {
-		err = errors.Wrapf(err, "授权错误！")
+		ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1000, "授权错误!"))
+		ws.Close()
+		return
+	}
+	if _, ok := userMap[decode.Uid]; !ok {
+		ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1000, "授权信息错误：未找到该用户！"))
+		ws.Close()
 		return
 	}
 

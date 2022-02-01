@@ -16,7 +16,6 @@ type GetPlayerName func(id int) string
 type W3cSession struct {
 	Players      []int // 玩家id
 	Poker        *Win3Cards
-	count        int          // 玩家人数
 	Round        int          // 当前回合数
 	ScoreMap     map[int]int  // 玩家分数 key playerId
 	ReadyInfo    map[int]bool // 准备信息， 全部准备表示已经开局
@@ -39,7 +38,6 @@ func (self *W3cSession) init(players []int) error {
 		return errors.New("人数不够开局")
 	}
 	self.Players = players
-	self.count = length
 	self.ReadyInfo = make(map[int]bool, length)
 	self.ScoreMap = make(map[int]int, length)
 	self.Round = 1
@@ -62,7 +60,7 @@ func (self *W3cSession) Run(ctx context.Context, players []int) error {
 
 	// 发送局面信息
 	self.BroadcastSession(ctx)
-	for r := 1; r <= self.count*baseRound; r++ {
+	for r := 1; r <= len(self.Players)*baseRound; r++ {
 		self.Round = r
 		// 等待玩家准备
 		self.WaitReady(ctx)
