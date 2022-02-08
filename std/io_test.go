@@ -4,10 +4,50 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 )
+
+// TestIO
+func TestIO(t *testing.T) {
+	{
+		//reader
+		reader := bytes.NewReader([]byte("1234567890"))
+
+		for {
+			b := make([]byte, 6)
+			n, err := reader.Read(b)
+			if err != nil {
+				if err == io.EOF {
+					t.Log("Read Finished")
+					break
+				}
+				t.Fatal("Read错误：", err)
+			}
+
+			t.Log(string(b[:n]))
+		}
+	}
+
+	{
+		// writer
+		//b := []byte{}
+		//buf := bytes.NewBuffer(b)
+		//_, err := buf.Write([]byte("1234567890a"))
+		//assert.NoError(t, err)
+		//t.Log(b)
+		//t.Log(buf)
+
+		file, err := os.Create("write_test.txt")
+		assert.NoError(t, err)
+		writer := bufio.NewWriter(file)
+		_, err = writer.Write([]byte("123456"))
+		assert.NoError(t, err)
+		writer.Flush()
+	}
+}
 
 // TestIoRead 从文件读数据
 func TestIoRead(t *testing.T) {
