@@ -34,7 +34,7 @@ func init() {
 	hubMap = make(map[int]*Hub)
 }
 func NewHub(owner int) *Hub {
-	id := common.RandNum(6)
+	id := common.RandNum(9999)
 	hub := &Hub{
 		Id:      id,
 		Owner:   owner,

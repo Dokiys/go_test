@@ -90,7 +90,7 @@ func GenInfoMsg(msg string) []byte {
 	}
 	bytes, err := json.Marshal(infoMsg)
 	if err != nil {
-		logrus.Errorf("序列化InfoMsg失败: ", err.Error())
+		logrus.Errorf("序列化InfoMsg失败: %s", err.Error())
 	}
 
 	return bytes
@@ -105,7 +105,7 @@ func GenSeqMsg(seq []int) []byte {
 	}
 	bytes, err := json.Marshal(infoMsg)
 	if err != nil {
-		logrus.Errorf("序列化SeqMsg失败: ", err.Error())
+		logrus.Errorf("序列化SeqMsg失败: %s", err.Error())
 	}
 
 	return bytes
@@ -123,7 +123,7 @@ func GenW3cSessionMsg(ws *W3cSession) []byte {
 	}
 	bytes, err := json.Marshal(wsMsg)
 	if err != nil {
-		logrus.Errorf("序列化RoundSessionMsg失败: ", err.Error())
+		logrus.Errorf("序列化RoundSessionMsg失败: %s", err.Error())
 	}
 	return bytes
 }
@@ -138,7 +138,7 @@ func GenW3cResultMsg(ws *W3cSession) []byte {
 	}
 	bytes, err := json.Marshal(wsMsg)
 	if err != nil {
-		logrus.Errorf("序列化RoundSessionMsg失败: ", err.Error())
+		logrus.Errorf("序列化RoundSessionMsg失败: %s", err.Error())
 	}
 	return bytes
 }
@@ -155,7 +155,7 @@ func GenRoundSessionMsg(rs *RoundSession) []byte {
 	}
 	bytes, err := json.Marshal(rsMsg)
 	if err != nil {
-		logrus.Errorf("序列化RoundSessionMsg失败: ", err.Error())
+		logrus.Errorf("序列化RoundSessionMsg失败: %s", err.Error())
 	}
 	return bytes
 }
@@ -188,7 +188,7 @@ func GenRelinkSessionMsg(ws *W3cSession, id int) []byte {
 	}
 	bytes, err := json.Marshal(relinkMsg)
 	if err != nil {
-		logrus.Errorf("序列化RelinkSessionMsg失败: ", err.Error())
+		logrus.Errorf("序列化RelinkSessionMsg失败: %s", err.Error())
 	}
 	return bytes
 }
@@ -203,7 +203,7 @@ func GenViewLogMsg(winner int, handCards map[int]HandCard) []byte {
 	}
 	bytes, err := json.Marshal(vlMsg)
 	if err != nil {
-		logrus.Errorf("序列化ViewLogMsg失败: ", err.Error())
+		logrus.Errorf("序列化ViewLogMsg失败: %s", err.Error())
 	}
 	return bytes
 }
@@ -217,7 +217,7 @@ func GenActionViewMsg(card HandCard) []byte {
 	}
 	bytes, err := json.Marshal(act)
 	if err != nil {
-		logrus.Errorf("序列化ActionViewMsg失败: ", err.Error())
+		logrus.Errorf("序列化ActionViewMsg失败: %s", err.Error())
 	}
 
 	return bytes

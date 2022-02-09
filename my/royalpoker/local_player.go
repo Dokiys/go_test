@@ -30,7 +30,7 @@ func (self *LocalPlayer) SetConn(ctx context.Context, conn *websocket.Conn) {
 
 func NewLocalPlayer(name string) *LocalPlayer {
 	player := &LocalPlayer{
-		Id:      common.RandNum(6),
+		Id:      common.RandNum(9999),
 		Name:    name,
 		send:    make(chan []byte),
 		receive: make(chan []byte),

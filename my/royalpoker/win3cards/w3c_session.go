@@ -96,7 +96,7 @@ func (self *W3cSession) WaitReady(ctx context.Context) {
 				// TODO[Dokiy] 2022/1/27:
 				data, err := self.Receiver(ctx, id)
 				if err != nil {
-					logrus.Errorf("等待玩家准备时，接收操作错误：", err.Error())
+					logrus.Errorf("等待玩家准备时，接收操作错误：%s", err.Error())
 					continue
 				}
 

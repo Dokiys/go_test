@@ -17,11 +17,11 @@ func NewPoker() *Win3Cards {
 
 func (self *Win3Cards) CutTheDeck() {
 	self.stack = &stack{
-		dc: map[int]string{
-			2: "S2", 3: "S3", 4: "S4", 5: "S5", 6: "S6", 7: "S7", 8: "S8", 9: "S9", 10: "S10", 11: "SJ", 12: "SQ", 13: "SK", 14: "SA",
-			102: "H2", 103: "H3", 104: "H4", 105: "H5", 106: "H6", 107: "H7", 108: "H8", 109: "H9", 110: "H10", 111: "HJ", 112: "HQ", 113: "HK", 114: "HA",
-			202: "C2", 203: "C3", 204: "C4", 205: "C5", 206: "C6", 207: "C7", 208: "C8", 209: "C9", 210: "C10", 211: "CJ", 212: "CQ", 213: "CK", 214: "CA",
-			302: "D2", 303: "D3", 304: "D4", 305: "D5", 306: "D6", 307: "D7", 308: "D8", 309: "D9", 310: "D10", 311: "DJ", 312: "DQ", 313: "DK", 314: "DA",
+		dc: []int{
+			2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+			102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+			202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214,
+			302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
 		},
 		v:  common.RandAlphabetStr(10),
 	}
@@ -37,20 +37,22 @@ func (self *Win3Cards) Deal() (HandCard, error) {
 		return HandCard{}, errors.New("超出发牌数量限制！")
 	}
 
-	i := 0
+	var remainDc = stack.dc
 	cards := [3]int{}
-	for k, v := range stack.dc {
-		{
-			if v == "" {
+	for i := 0; i < 3; i++ {
+		for {
+			n := common.RandNum(len(remainDc)-i)
+			if remainDc[n] == 0 {
+				remainDc = append(remainDc[:n], remainDc[n+1:]...)
 				continue
 			}
-			cards[i] = k
-			stack.dc[k] = ""
-		}
-		if i++; i >= 3 {
+
+			cards[i] = remainDc[n]
+			remainDc[n] = 0
 			break
 		}
 	}
+	stack.dc = remainDc
 
 	stack.c++
 	return HandCard{Cards: cards, v: stack.v}, nil
