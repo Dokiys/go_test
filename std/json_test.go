@@ -19,6 +19,9 @@ type F struct {
 }
 
 // TestJsonOmitEmptyMarshal 测试初始值不生成对应json结构
+// Go中结构体转Json可以通过`omitempty`来设置零值的字段，不转成Json。
+// 但是需要注意的是：本身就为零值的值也会被忽略(如果一个成员变量没有被赋值，本身也就是其对应的零值)；
+// 并且空的结构体同样会被转成对应的字段，即使其所有成员变量都被添加了`omitempty`，依旧会以空结构的形式出现在Json字符串中
 func TestJsonOmitEmptyMarshal(t *testing.T) {
 	ap := Ap{
 		A: 1, B: 2, D: 3,
@@ -92,4 +95,18 @@ func TestJsonCopyStruct(t *testing.T) {
 	}
 
 	t.Logf("target: %v",target)
+}
+
+// TestJsonSlice json序列化切片
+func TestJsonSlice(t *testing.T) {
+	s1 := []string{}						// []
+	s2 := make([]string, 2)		// ["",""]
+	var s3 []string							// null
+	b1, _ := json.Marshal(s1)
+	b2, _ := json.Marshal(s2)
+	b3, _ := json.Marshal(s3)
+
+	t.Log(string(b1))
+	t.Log(string(b2))
+	t.Log(string(b3))
 }
