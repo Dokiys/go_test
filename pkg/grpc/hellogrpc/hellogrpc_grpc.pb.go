@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.17.3
-// source: hellogrpc/hellogrpc.proto
+// source: hellogrpc.proto
 
 package hellogrpc
 
@@ -174,5 +174,5 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "hellogrpc/hellogrpc.proto",
+	Metadata: "hellogrpc.proto",
 }
