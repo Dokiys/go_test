@@ -3,6 +3,7 @@ module go_test
 go 1.16
 
 require (
+	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/chromedp/cdproto v0.0.0-20211112223831-e508c7bf6446
 	github.com/chromedp/chromedp v0.7.4
 	github.com/golang/mock v1.6.0
