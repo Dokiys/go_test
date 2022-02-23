@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"google.golang.org/grpc"
 	"grpc/hellogrpc"
 	"log"
@@ -21,10 +23,19 @@ func main() {
 	//	}
 	//	s = grpc.NewServer(grpc.Creds(creds))
 	//}
+	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		// 前置处理
+		fmt.Printf("Before RPC handling. Info: %+v", info)
+		// 调用方法
+		resp, err := handler(ctx, req)
+		fmt.Printf("After RPC handling. resp: %+v", resp)
+		// 后置处理
+		return resp, err
+	}
 
 	// Create the insecure server
 	{
-		s = grpc.NewServer()
+		s = grpc.NewServer(grpc.UnaryInterceptor(interceptor))
 		hellogrpc.RegisterGreeterServer(s, &hellogrpc.Server{Addr: *addr})
 
 		// 注册服务

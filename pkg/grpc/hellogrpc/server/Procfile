@@ -1,0 +1,2 @@
+server55: ./server -addr="localhost:50055"
+server56: ./server -addr="localhost:50056"
