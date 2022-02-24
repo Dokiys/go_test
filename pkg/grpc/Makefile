@@ -12,6 +12,17 @@ proto_grpc:
  		    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
  		    $(PROTO_GRPC_FILES)
 
+# gRPC Gateway
+PROTO_GRPC_FILES=$(shell find ./gateway/* -name *.proto)
+proto_gateway:
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out ./ \
+        --grpc-gateway_opt logtostderr=true \
+        --grpc-gateway_opt paths=source_relative \
+        --grpc-gateway_opt generate_unbound_methods=true \
+        $(PROTO_GRPC_FILES)
+#
 #proto:
 #	protoc --proto_path=. \
 #           --gogofaster_out=plugins=grpc2,paths=source_relative:. \
