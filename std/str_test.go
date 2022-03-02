@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"hash/crc32"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -135,6 +136,11 @@ func TestStrNestedMethod(t *testing.T) {
 BREAK:
 	t.Log(isNested)
 	t.Log(exp)
+}
+
+func TestStringToUniqInt(t *testing.T) {
+	hsh := int(crc32.ChecksumIEEE([]byte(strconv.Itoa(1) + "123dsfa44531231")))
+	t.Log(hsh)
 }
 
 //go test -run="none" -bench="Bench*"

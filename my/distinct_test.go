@@ -1,6 +1,9 @@
-package myutils
+package main
 
-import "reflect"
+import (
+	"reflect"
+	"testing"
+)
 
 // DistinctBy 根据传入方法比较去重
 func DistinctBy(s interface{}, f interface{}) interface{} {
@@ -33,4 +36,38 @@ func distinct(s interface{}, f interface{}) interface{} {
 	res = reflect.Append(res, iSlice...)
 
 	return res.Interface()
+}
+
+// TestDistinctInt 去重int
+func TestDistinctInt(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 1, 2, 3, 1, 1, 1}
+
+	res := Distinct(nums)
+
+	t.Log(res)
+}
+
+// TestDistinctString 去重string
+func TestDistinctString(t *testing.T) {
+	nums := []string{"1", "2", "3", "4", "1", "2", "3", "1", "1", "1"}
+
+	res := Distinct(nums)
+
+	t.Log(res)
+}
+
+// TestDistinctByStruct 测试根据指定函数去重结构体
+func TestDistinctByStruct(t *testing.T) {
+	type a struct { Id int32 }
+	as := []*a{
+		{Id: 1},
+		{Id: 1},
+		{Id: 3},
+	}
+
+	res := DistinctBy(as, func(v *a) int32 {
+		return v.Id
+	}).([]*a)
+
+	t.Log(res[0].Id)
 }

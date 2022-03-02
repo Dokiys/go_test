@@ -2,7 +2,7 @@
 // Source: ./mytest/mock_test.go
 
 // Package mytest is a generated GoMock package.
-package mytest
+package tdd
 
 import (
 	reflect "reflect"

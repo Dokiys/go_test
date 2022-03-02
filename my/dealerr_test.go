@@ -1,4 +1,4 @@
-package myerr
+package main
 
 import (
 	"fmt"

@@ -1,13 +1,13 @@
-package mytest
+package tdd
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
-//func add(a, b int) int {
-//	return a + b
-//}
+func add(a, b int) int {
+	return a + b
+}
 
 func TestConvey(t *testing.T) {
 	Convey("3 add 6 should equal 9", t, func() {

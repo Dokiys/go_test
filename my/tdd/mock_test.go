@@ -1,4 +1,4 @@
-package mytest
+package tdd
 
 import (
 	"github.com/golang/mock/gomock"

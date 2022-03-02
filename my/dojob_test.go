@@ -1,4 +1,4 @@
-package myjob
+package main
 
 import (
 	"flag"
