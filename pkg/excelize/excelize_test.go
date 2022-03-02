@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const pathPrefix = "../../assert/"
+const pathPrefix = "../../asset/"
 
 // TestExcelizeHello 测试Excelize
 func TestExcelizeHello(t *testing.T) {
