@@ -33,3 +33,15 @@ func TestOsTempFile(t *testing.T) {
 	assert.NoError(t, err)
 	t.Logf("ioutil.TempFile():\t%s", tempFile.Name())
 }
+
+// TestOsHostname get hostname
+func TestOsHostname(t *testing.T) {
+	hostname, err := os.Hostname()
+	assert.NoError(t, err)
+	t.Log(hostname)
+}
+
+// TestOsPid get Pid
+func TestOsPid(t *testing.T) {
+	t.Log(os.Getpid())
+}

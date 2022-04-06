@@ -13,7 +13,7 @@ func (self Worker) HelloWork() bool {
 	return true
 }
 
-func TestName(t *testing.T) {
+func TestDojob(t *testing.T) {
 	var mStr string
 	flag.StringVar(&mStr, "m", "", "执行方法名")
 

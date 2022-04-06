@@ -1,6 +1,7 @@
 package std
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -25,4 +26,12 @@ func TestTimeAdd(t *testing.T) {
 // TestTimeNano 输出当前时间
 func TestTimeNano(t *testing.T) {
 	t.Log(time.Now().UnixNano())
+}
+
+// TestTimeStrParse 根据字符串和格式转换成时间
+func TestTimeStrParse(t *testing.T) {
+	//从字符串转为时间戳，第一个参数是格式，第二个是要转换的时间字符串
+	tm, _ := time.Parse("01/02/2006", "02/08/2015")
+
+	fmt.Println(tm.Unix())
 }

@@ -53,6 +53,21 @@ func TestJsonUnmarshalMap(t *testing.T) {
 	t.Log(m) // map[1:a 2:b 3:c]
 }
 
+// TestJsonUnmarshalInterface 解析num Interface
+func TestJsonUnmarshalInterface(t *testing.T) {
+	str := `{"a":"a","b":2}`
+	type S struct {
+		A interface{} `json:"a"`
+		B interface{} `json:"b"`
+	}
+	s := &S{}
+
+	_ = json.Unmarshal([]byte(str), &s)
+	t.Logf("%T", s.A) // string
+	t.Logf("%T", s.B) // float64
+
+	t.Log(int64(s.B.(float64)))
+}
 
 type Config struct {
 	Type         string `json:"type"`
@@ -76,10 +91,11 @@ func JsonCopy(source interface{}, target interface{}) error {
 	err := json.Unmarshal(bytes, target)
 	return errors.Wrap(err, "数据拷贝失败！")
 }
+
 // TestJsonCopyStruct
 func TestJsonCopyStruct(t *testing.T) {
 	type A struct {
-		Id int
+		Id   int
 		Name string
 	}
 
@@ -94,14 +110,14 @@ func TestJsonCopyStruct(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("target: %v",target)
+	t.Logf("target: %v", target)
 }
 
 // TestJsonSlice json序列化切片
 func TestJsonSlice(t *testing.T) {
-	s1 := []string{}						// []
-	s2 := make([]string, 2)		// ["",""]
-	var s3 []string							// null
+	s1 := []string{}        // []
+	s2 := make([]string, 2) // ["",""]
+	var s3 []string         // null
 	b1, _ := json.Marshal(s1)
 	b2, _ := json.Marshal(s2)
 	b3, _ := json.Marshal(s3)
