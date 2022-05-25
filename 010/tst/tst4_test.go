@@ -3,8 +3,6 @@ package tst
 import (
 	"fmt"
 	"math"
-	"sort"
-	"strconv"
 	"testing"
 )
 
@@ -76,12 +74,12 @@ func QuickSortNumber(nums []int) {
 
 
 func LargestNumber(nums []int) string {
-	// QuickSortNumber(nums)
-	sort.Slice(nums, func(i,j int)bool{
-		s1 := strconv.Itoa(nums[i])
-		s2 := strconv.Itoa(nums[j])
-		return s1+s2 > s2+s1
-	})
+	QuickSortNumber(nums)
+	//sort.Slice(nums, func(i,j int)bool{
+	//	s1 := strconv.Itoa(nums[i])
+	//	s2 := strconv.Itoa(nums[j])
+	//	return s1+s2 > s2+s1
+	//})
 
 	var s string
 	for _,n:= range nums {
