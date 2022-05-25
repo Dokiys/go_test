@@ -1,4 +1,4 @@
-package main
+package tst
 
 import (
 	"github.com/pkg/errors"
