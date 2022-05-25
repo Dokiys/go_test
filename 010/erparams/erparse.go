@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"go_test/010/erparams"
 	"os"
 )
 
@@ -15,7 +14,7 @@ var field = flag.String("f", "all", "选择需要输出的字段")
 func main() {
 	flag.Parse()
 	if *value != "[]" {
-		err := erparams.DoParse(*value, *field)
+		err := DoParse(*value, *field)
 		if err != nil {
 		    fmt.Println(err.Error())
 		}
@@ -25,7 +24,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		*value = scanner.Text()
-		err := erparams.DoParse(*value, *field)
+		err := DoParse(*value, *field)
 		if err != nil {
 			fmt.Println(err.Error())
 			return

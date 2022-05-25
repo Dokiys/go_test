@@ -1,4 +1,4 @@
-package erparams
+package main
 
 import (
 	"bytes"
