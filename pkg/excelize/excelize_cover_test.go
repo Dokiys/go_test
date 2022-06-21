@@ -2,6 +2,8 @@ package excelize1
 
 import (
 	"github.com/xuri/excelize/v2"
+	"go_test/pkg"
+
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -29,5 +31,5 @@ func TestExcelizeCoverCell(t *testing.T) {
 		return
 	}
 
-	f.SaveAs(pathPrefix + "BookCover_out.xlsx")
+	f.SaveAs(pkg.PathPrefix + "BookCover_out.xlsx")
 }

@@ -2,16 +2,19 @@ package excelize1
 
 import (
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"strconv"
 	"testing"
+
+	"github.com/xuri/excelize/v2"
+	"go_test/pkg"
 )
+
 // TestExcelizeDup 测试插入复制行
 func TestExcelizeDup(t *testing.T) {
-	f, err := excelize.OpenFile(pathPrefix + "BookDup.xlsx")
+	f, err := excelize.OpenFile(pkg.PathPrefix + "BookDup.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -23,12 +26,12 @@ func TestExcelizeDup(t *testing.T) {
 	}
 
 	f.SaveAs("BookDup_out.xlsx")
-	//f.SaveAs(pathPrefix + "BookDup_out.xlsx")
+	//f.SaveAs(pkg.PathPrefix + "BookDup_out.xlsx")
 }
 
 // TestExcelizeCopy 测试替换复制行
 func TestExcelizeCopy(t *testing.T) {
-	f, _ := excelize.OpenFile(pathPrefix + "BookCopy.xlsx")
+	f, _ := excelize.OpenFile(pkg.PathPrefix + "BookCopy.xlsx")
 
 	data := []int{1, 2, 3}
 	// 校验指定单元格高度是否为数据条数的倍数
@@ -62,5 +65,5 @@ func TestExcelizeCopy(t *testing.T) {
 			}
 		}
 	}
-	f.SaveAs(pathPrefix + "BookCopy_out.xlsx")
+	f.SaveAs(pkg.PathPrefix + "BookCopy_out.xlsx")
 }

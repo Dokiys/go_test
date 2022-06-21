@@ -2,15 +2,15 @@ package excelize1
 
 import (
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"strings"
 	"testing"
-)
 
-const pathPrefix = "../../asset/"
+	"github.com/xuri/excelize/v2"
+	"go_test/pkg"
+)
 
 // TestExcelizeHello 测试Excelize
 func TestExcelizeHello(t *testing.T) {
@@ -23,14 +23,14 @@ func TestExcelizeHello(t *testing.T) {
 	// 设置工作簿的默认工作表
 	f.SetActiveSheet(index)
 	// 根据指定路径保存文件
-	if err := f.SaveAs(pathPrefix + "BookHello_out.xlsx"); err != nil {
+	if err := f.SaveAs(pkg.PathPrefix + "BookHello_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
 
 // TestExcelizeReadExcel 测试读取文件
 func TestExcelizeReadExcel(t *testing.T) {
-	f, err := excelize.OpenFile(pathPrefix + "BookRead.xlsx")
+	f, err := excelize.OpenFile(pkg.PathPrefix + "BookRead.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -51,7 +51,7 @@ func TestExcelizeReadExcel(t *testing.T) {
 		fmt.Println()
 	}
 
-	f.SaveAs(pathPrefix + "BookRead_out.xlsx")
+	f.SaveAs(pkg.PathPrefix + "BookRead_out.xlsx")
 }
 
 // TestExcelizeChart 添加图表
@@ -93,7 +93,7 @@ func TestExcelizeChart(t *testing.T) {
 		return
 	}
 	// 根据指定路径保存文件
-	if err := f.SaveAs(pathPrefix + "BookChart_out.xlsx"); err != nil {
+	if err := f.SaveAs(pkg.PathPrefix + "BookChart_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -123,7 +123,7 @@ func TestExcelizeImage(t *testing.T) {
 		fmt.Println(err)
 	}
 	// 保存文件
-	if err := f.SaveAs(pathPrefix + "BookImage_out.xlsx"); err != nil {
+	if err := f.SaveAs(pkg.PathPrefix + "BookImage_out.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -138,12 +138,11 @@ func TestExcelizeOneMerge(t *testing.T) {
 	f.MergeCell(sheet, "A1", "A2")
 	f.RemoveRow(sheet, 1)
 
-
 	//f.DuplicateRowTo(sheet, 2, 3)
 	//f.RemoveRow(sheet, 2)
 
 	// 根据指定路径保存文件
-	f.SaveAs(pathPrefix + "BookOneMerge_out.xlsx")
+	f.SaveAs(pkg.PathPrefix + "BookOneMerge_out.xlsx")
 }
 
 // TestExcelizeExp 测试表达式
@@ -155,12 +154,11 @@ func TestExcelizeExp(t *testing.T) {
 	f.SetCellValue(sheet, "A2", 1)
 	f.SetCellFormula(sheet, "A3", "=A1+A2")
 
-
 	//f.DuplicateRowTo(sheet, 2, 3)
 	//f.RemoveRow(sheet, 2)
 
 	// 根据指定路径保存文件
-	f.SaveAs(pathPrefix + "BookExp_out.xlsx")
+	f.SaveAs(pkg.PathPrefix + "BookExp_out.xlsx")
 }
 
 // 获取主题色
