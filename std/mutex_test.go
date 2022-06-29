@@ -29,7 +29,39 @@ func TestMutexRW(t *testing.T) {
 		// do more thing...
 		rw.Unlock()
 	}()
-	for {}
+	for {
+	}
+}
+
+// TestMutexRWDead 不可重入
+func TestMutexRWDead(t *testing.T) {
+	var rw sync.RWMutex
+	rw.RLock()
+	rw.Lock()
+}
+
+// TestMutexRWReentrant 读写锁
+func TestMutexRWReentrant(t *testing.T) {
+	var rw sync.RWMutex
+	a := 1
+	go func() {
+		// 保证在写锁之后执行
+		time.Sleep(1 * time.Second)
+		rw.RLock()
+		fmt.Println(a)
+		//print(a)
+		rw.RUnlock()
+	}()
+	go func() {
+		rw.Lock()
+		// do something...
+		time.Sleep(2 * time.Second)
+		a++
+		// do more thing...
+		rw.Unlock()
+	}()
+	for {
+	}
 }
 
 // TestMutexCond Single and Broadcast
@@ -43,7 +75,7 @@ func TestMutexCond(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			cond.L.Lock()
-			fmt.Printf("goroutine%d get lock\n",i)
+			fmt.Printf("goroutine%d get lock\n", i)
 			if !flag {
 				cond.Wait()
 			}
@@ -53,7 +85,7 @@ func TestMutexCond(t *testing.T) {
 		}(i)
 	}
 
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	cond.L.Lock()
 	flag = true
 	fmt.Printf("main goroutine: i'm coming!\n")

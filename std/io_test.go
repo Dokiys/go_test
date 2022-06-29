@@ -3,11 +3,12 @@ package std
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestIO
@@ -83,4 +84,19 @@ func TestIoWrite(t *testing.T) {
 		_, err = file.Write([]byte("lalalalla"))
 		assert.NoError(t, err)
 	}
+}
+
+// TestReadOnce Reader只能读取一次
+func TestReadOnce(t *testing.T) {
+	bs := bytes.NewReader([]byte("123jdsakl"))
+
+	all, err := ioutil.ReadAll(bs)
+	assert.NoError(t, err)
+	t.Log("1:/n")
+	t.Log(all)
+
+	all, err = ioutil.ReadAll(bs)
+	assert.NoError(t, err)
+	t.Log("2:/n")
+	t.Log(all)
 }

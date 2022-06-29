@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -61,7 +62,6 @@ type ErAggregate struct {
 	Method     string `json:"method"`
 }
 
-
 const (
 	All         = "all"
 	START_DATE  = "start_date"
@@ -97,9 +97,9 @@ var fieldMap = map[string]func([]*SendConfig, string) error{
 }
 
 func DoParse(value string, field string) error {
-	sendConfigs,err := parseSendConfig(value)
+	sendConfigs, err := parseSendConfig(value)
 	if err != nil {
-	 	return err
+		return err
 	}
 
 	err = fieldMap[field](sendConfigs, field)
