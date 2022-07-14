@@ -1,6 +1,10 @@
 package helloproto
 
 import (
+	"io/ioutil"
+	"log"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -8,9 +12,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
-	"io/ioutil"
-	"log"
-	"testing"
 )
 
 func TestHelloProto(t *testing.T) {
@@ -77,7 +78,6 @@ func TestHelloProtoReflect2(t *testing.T) {
 
 	t.Log(msg.Interface())
 }
-
 
 func TestHelloDescProto(t *testing.T) {
 	fds := &descriptorpb.FileDescriptorSet{}
