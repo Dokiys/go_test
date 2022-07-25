@@ -1,4 +1,4 @@
-package viper
+package yaml
 
 import (
 	"bytes"

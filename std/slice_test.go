@@ -45,23 +45,23 @@ func TestSliceRangePointer2(t *testing.T) {
 func TestSliceExpend(t *testing.T) {
 	nums := make([]int32, 0, 2)
 
-	t.Logf("len: %d",len(nums))
-	t.Logf("cap: %d",cap(nums))
+	t.Logf("len: %d", len(nums))
+	t.Logf("cap: %d", cap(nums))
 	t.Logf("--------")
 
 	nums = append(nums, 1)
-	t.Logf("len: %d",len(nums))
-	t.Logf("cap: %d",cap(nums))
+	t.Logf("len: %d", len(nums))
+	t.Logf("cap: %d", cap(nums))
 	t.Logf("--------")
 
 	nums = append(nums, 2)
-	t.Logf("len: %d",len(nums))
-	t.Logf("cap: %d",cap(nums))
+	t.Logf("len: %d", len(nums))
+	t.Logf("cap: %d", cap(nums))
 	t.Logf("--------")
 
 	nums = append(nums, 3)
-	t.Logf("len: %d",len(nums))
-	t.Logf("cap: %d",cap(nums))
+	t.Logf("len: %d", len(nums))
+	t.Logf("cap: %d", cap(nums))
 	t.Logf("--------")
 }
 
