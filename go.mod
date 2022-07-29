@@ -14,7 +14,6 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/stretchr/testify v1.7.2
-	github.com/urfave/cli/v2 v2.3.0
 	github.com/xuri/excelize/v2 v2.5.0
 	go.etcd.io/etcd/client/v3 v3.5.4
 	gopkg.in/yaml.v2 v2.4.0
