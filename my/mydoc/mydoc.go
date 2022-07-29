@@ -1,9 +1,11 @@
 package mydoc
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // version mydoc version
-const version = "v1.0"
+const version = "v1.0.0"
 
 /*
 	The following is package method
@@ -11,14 +13,14 @@ const version = "v1.0"
 */
 
 // Meet greeting each other
-func Meet(teacher Teacher, stu Stu)  {
+func Meet(teacher Teacher, stu Stu) {
 	fmt.Println(teacher.Name + ": Hello " + stu.Name)
-	fmt.Println(stu.Name + ": Hello Mr." + teacher.Name )
+	fmt.Println(stu.Name + ": Hello Mr." + teacher.Name)
 }
 
 // Version show mydoc version
-func Version()  {
-	fmt.Println(Version)
+func Version() {
+	fmt.Println(version)
 }
 
 // Stu a student struct
@@ -27,13 +29,13 @@ type Stu struct {
 	code int
 }
 
-// Study add Code for Stu
-func (self *Stu)Study() {
+// Study add code for Stu
+func (self *Stu) Study() {
 	self.code += 1
 }
 
 // Code return stu code
-func (self *Stu)Code() int {
+func (self *Stu) Code() int {
 	return self.code
 }
 
@@ -43,6 +45,6 @@ type Teacher struct {
 }
 
 // BUG(Dokiy): Unused
-func (self *Teacher)evaluate(stu *Stu, code int) {
+func (self *Teacher) evaluate(stu *Stu, code int) {
 	stu.code = code
 }
