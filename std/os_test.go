@@ -1,10 +1,11 @@
 package std
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestOsWd 获取当前路径
@@ -17,6 +18,13 @@ func TestOsWd(t *testing.T) {
 func TestOsCreateFile(t *testing.T) {
 	_, err := os.Create("./test.txt")
 	if err != nil {
+		t.Error(err)
+	}
+}
+
+// TestOsMkdir 创建文件夹
+func TestOsMkdir(t *testing.T) {
+	if err := os.MkdirAll("./a/b/c", os.ModePerm); err != nil {
 		t.Error(err)
 	}
 }
